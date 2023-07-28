@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-
+#test
 RAN_ON=$(date +%Y_%m_%d_%H_%M_%S)
 NUMBER=0
 
-INVESTIGATOR=
-PROJECT=
+INVESTIGATOR=verneris
+PROJECT=230623_Jessica_B7H3_bead_stim
 
-RNASEQ=/beevol/home/hoffmeye/Documents/rna_seq_data
-DATA=$RNASEQ/${INVESTIGATOR}_data/$PROJECT
+RNASEQ=/beevol/home/hoffmeye/documents/rna_seq_data
+DATA=$RNASEQ/${INVESTIGATOR}/$PROJECT
 SCRIPTS=$DATA/scripts
 FASTQ=$DATA/fastq_files
 FASTQC=$DATA/qc_files_before_trimming
@@ -36,7 +36,7 @@ cat << EOF > $SCRIPTS/${RAN_ON}_${FILE}_script.sh
 source /etc/profile.d/modules.sh
 
 module load java/1.8
-module load fastqc/0.11.8
+module load fastqc/0.11.9
 
 FASTQ=$FASTQ
 FASTQC=$FASTQC
@@ -47,7 +47,7 @@ fastqc -t 10 -o $FASTQC ${FILE}.fastq.gz
 
 EOF
 
-bsub -q priority < $SCRIPTS/${RAN_ON}_${FILE}_script.sh
+bsub -q normal < $SCRIPTS/${RAN_ON}_${FILE}_script.sh
 
 rm -f $SCRIPTS/${RAN_ON}_${FILE}_script.sh
 
