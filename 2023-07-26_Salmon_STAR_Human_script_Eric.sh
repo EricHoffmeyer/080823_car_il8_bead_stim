@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-INVESTIGATOR=Pavel_Guadalupe
-PROJECT=Megakaryocyte
+INVESTIGATOR=verneris
+PROJECT=230623_Jessica_B7H3_bead_stim
 
 RAN_ON=$(date +%Y_%m_%d)
 NUMBER=0
 ADAPTERS=/cluster/software/modules-sw/BBMap/bbmap_38.86/resources
-RNASEQ=/beevol/home/phangtzu/Documents/rna-seq_data
+RNASEQ=/beevol/home/hoffmeye/documents/rna_seq_data
 GENOMES=/beevol/home/phangtzu/Documents/genomes
 # SALMON=/beevol/home/phangtzu/Documents/tools/salmon-1.6.0_linux_x86_64/bin
 INDEX1=$GENOMES/STAR_indices/human_GRCh38_for_150bp_reads
@@ -16,7 +16,7 @@ SCRIPTS=$DATA/scripts
 FASTQ=$DATA/fastq_files
 TRIMMED=$DATA/trimmed_fastq_files
 SORTED=$DATA/sorted_bam_files_w_STAR
-SALMONOUTPUT=$DATA/salmon_output_files$PROCESS
+SALMONOUTPUT=$DATA/salmon_output_files
 BIGWIG=$DATA/bigwig_files_normalized_w_RPGC
 FLAGSTAT=$DATA/flagstat_report_w_STAR
 
@@ -28,7 +28,7 @@ mkdir -p $FLAGSTAT
 
 cd $FASTQ
 
-for FILE in `ls *R1_001.fastq.gz | cut -d "." -f 1 | cut -d "_" -f 1,2,3,4,5`;
+for FILE in `ls *R1.fastq.gz | cut -d "." -f 1 # | cut -d "_" -f 1,2,3,4,5`;
 #for FILE in `ls MEG_3d_Anti1_S15_L001_R1_001.fastq.gz | cut -d "." -f 1 | cut -d "_" -f 1,2,3,4,5`;
 do
 echo $FILE
@@ -44,13 +44,14 @@ cat << EOF > $SCRIPTS/${RAN_ON}_${FILE}.sh
 #BSUB -R "select[mem>40] rusage[mem=40]"
 
 source /etc/profile.d/modules.sh
+
 # module load BBMap/38.8
 module load bbtools/39.01
 module load bowtie2/2.3.2
 module load samtools/1.16.1
 module load salmon/1.9.0
 #module load gcc/5.4.0
-module load STAR/2.7.9a
+module load STAR/2.7.10a
 module load python/2.7.14
 module load picard/2.20.1
 module load bedtools/2.26.0
@@ -73,8 +74,8 @@ FLAGSTAT=$FLAGSTAT
 # Trim adapter sequences using bbduk from bbtools/BBMap
 bbduk.sh -Xmx38g \
     threads=10 \
-    in1=$FASTQ/${FILE}_R1_001.fastq.gz \
-    in2=$FASTQ/${FILE}_R2_001.fastq.gz \
+    in1=$FASTQ/${FILE}.R1.fastq.gz \
+    in2=$FASTQ/${FILE}.R2.fastq.gz \
     out1=$TRIMMED/${FILE}_R1.fastq.gz \
     out2=$TRIMMED/${FILE}_R2.fastq.gz \
     ref=$ADAPTERS/truseq.fa.gz \
@@ -84,16 +85,16 @@ bbduk.sh -Xmx38g \
     tpe tbo
 
 # Alignment with STAR
-STAR \
-    --genomeDir $INDEX1 \
-    --readFilesIn $TRIMMED/${FILE}_R1.fastq.gz $TRIMMED/${FILE}_R2.fastq.gz \
-    --readFilesCommand zcat \
-    --runThreadN 10 \
-    --outFilterScoreMinOverLread 0.66 \
-    --outFilterMatchNminOverLread 0.66 \
-    --outSAMtype BAM SortedByCoordinate \
-    --outFileNamePrefix $SORTED/${FILE}_ \
-    --quantMode GeneCounts
+# STAR \
+#     --genomeDir $INDEX1 \
+#     --readFilesIn $TRIMMED/${FILE}_R1.fastq.gz $TRIMMED/${FILE}_R2.fastq.gz \
+#     --readFilesCommand zcat \
+#     --runThreadN 10 \
+#     --outFilterScoreMinOverLread 0.66 \
+#     --outFilterMatchNminOverLread 0.66 \
+#     --outSAMtype BAM SortedByCoordinate \
+#     --outFileNamePrefix $SORTED/${FILE}_ \
+#     --quantMode GeneCounts
 
 # Pseudo-alignment with Salmon
 salmon quant -i $INDEX2 \
@@ -113,19 +114,19 @@ salmon quant -i $INDEX2 \
 # The -1 and -2 arguments tell salmon where to find the left and right reads for this sample
 
 # Index bam files
-samtools index -@ 10 $SORTED/${FILE}_Aligned.sortedByCoord.out.bam
+# samtools index -@ 10 $SORTED/${FILE}_Aligned.sortedByCoord.out.bam
 
 ## Convert .bam files into .bw (bigwig) files
-bamCoverage --bam $SORTED/${FILE}_Aligned.sortedByCoord.out.bam \
-    -o $BIGWIG/${FILE}.bw \
-    --numberOfProcessors 10 \
-    --normalizeUsing RPGC \
-    --effectiveGenomeSize 2913022398 # Number to use for human reads when multimapped are kept
+# bamCoverage --bam $SORTED/${FILE}_Aligned.sortedByCoord.out.bam \
+#     -o $BIGWIG/${FILE}.bw \
+#     --numberOfProcessors 10 \
+#     --normalizeUsing RPGC \
+#     --effectiveGenomeSize 2913022398 # Number to use for human reads when multimapped are kept
 
 #### Count the number of mapped reads if extraction is needed or for general information
-echo "$FILE" >> $FLAGSTAT/${RAN_ON}_${FILE}_report.txt
-samtools flagstat -@ 10 $SORTED/${FILE}_Aligned.sortedByCoord.out.bam >> $FLAGSTAT/${RAN_ON}_${FILE}_report.txt
-echo "" >> $FLAGSTAT/${RAN_ON}_${FILE}_report.txt
+# echo "$FILE" >> $FLAGSTAT/${RAN_ON}_${FILE}_report.txt
+# samtools flagstat -@ 10 $SORTED/${FILE}_Aligned.sortedByCoord.out.bam >> $FLAGSTAT/${RAN_ON}_${FILE}_report.txt
+# echo "" >> $FLAGSTAT/${RAN_ON}_${FILE}_report.txt
 
 EOF
 
