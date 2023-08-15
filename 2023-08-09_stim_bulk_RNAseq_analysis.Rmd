@@ -203,7 +203,7 @@ for(i in seq_along(Data.dictionary$Orig.Name)){
 A quick peek of the imported dataset shows that the data matrix has:
 
 -   35,113 genes (rows)
--   8 samples (columns)
+-   18 samples (columns)
 
 ```{r}
 sf.df
@@ -342,11 +342,13 @@ custom_theme <-
 ```{r}
 sf.df.se.pca %>% 
   pivot_sample() %>% 
-  ggplot(aes(x = PC1, y = PC2, colour = stim)) +
+  ggplot(aes(x = PC1, y = PC2, colour = donor)) +
   geom_point() +
   geom_text_repel(aes(label = .sample), show.legend = FALSE, size = 3) +
   custom_theme
+
 ```
+
 
 ## 3D
 
@@ -392,13 +394,13 @@ Data.dictionary.final
 
 ```{r}
 il8.res.sf.df.dds = results(sf.df.dds,
-                        contrast = c("stim", "no", "Il8"),
+                        contrast = c("stim", "Il8", "no"),
                         alpha = 0.05)
-il8.res.sf.df.dds
 
 bead.res.sf.df.dds = results(sf.df.dds,
-                        contrast = c("stim", "bead", "Il8"),
+                        contrast = c("stim", "bead", "no"),
                         alpha = 0.05)
+
 
 ```
 
