@@ -1,0 +1,452 @@
+---
+title: "2023-08-16_bulk_RNAseq_subset_analysis"
+author: "Eric Hoffmeyer"
+date: "2023-08-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Libraries
+
+These libraries are required to perform this RNAseq analysis. Make sure you have install them before begin the analysis.
+
+```{r}
+library(tidyverse)
+library(tidybulk)
+library(janitor)
+library(plotly)
+library(ggrepel)
+library(DESeq2)
+library(GeneTonic)
+library(pcaExplorer)
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+library(topGO)
+```
+
+# Data Dictionary
+
+```{r}
+dir.names = c(
+"quant_files/D1_B7C2_Il8_stim_S8_L002",
+"quant_files/D1_B7C2_bead_stim_S14_L002",
+"quant_files/D1_B7C2_no_stim_S2_L002",
+"quant_files/D1_B7_Il8_stim_S7_L002",
+"quant_files/D1_B7_bead_stim_S13_L002",
+"quant_files/D1_B7_no_stim_S1_L002",
+"quant_files/D2_B7C2_Il8_stim_S10_L002",
+"quant_files/D2_B7C2_bead_stim_S16_L002",
+"quant_files/D2_B7C2_no_stim_S4_L002",
+"quant_files/D2_B7_Il8_stim_S9_L002",
+"quant_files/D2_B7_bead_stim_S15_L002",
+"quant_files/D2_B7_no_stim_S3_L002",
+"quant_files/D3_B7C2_Il8_stim_S12_L002",
+"quant_files/D3_B7C2_bead_stim_S18_L002",
+"quant_files/D3_B7C2_no_stim_S6_L002",
+"quant_files/D3_B7_Il8_stim_S11_L002",
+"quant_files/D3_B7_bead_stim_S17_L002",
+"quant_files/D3_B7_no_stim_S5_L002"
+)
+
+#results.dir <- file.path("deseq_results")
+#plots.dir <- file.path("plots")
+```
+
+Convert the `vector` to `data.frame`.
+
+```{r}
+Data.dictionary <- data.frame(Orig.Name = dir.names, Folder.Name = dir.names) %>% 
+  mutate(Folder.Name = str_remove(Folder.Name, pattern = "quant_files/"))
+```
+
+A `DataFrame`:
+
+```{r}
+Data.dictionary
+```
+
+## Transform Dictionary
+
+Perform these steps to transform the `data.frame` into desirable format.
+
+```{r}
+Data.dictionary <- Data.dictionary %>% 
+  ## Create or duplicate the "Orig.Name" column and called it "Dup"
+  mutate(Dup = Folder.Name) %>% 
+  ## Breakup (separate) the "Dup" column using "_" as its separator
+  separate_wider_delim(Dup, names = c("donor", "CAR", "stim", "line1", "line2", "line3"), delim = "_") %>%
+  ## Create a new column called "col.name" by modifying "Orig.Name"
+  ## by removing "_S(any digit)_L002"
+  mutate(col.name = str_remove(Folder.Name, pattern = "_stim_S([:digit:]+)_L002")) %>%
+  # Relocate the new "col.name" column right after the first column; "Org.Name"
+  # relocate(col.name, .after = Orig.Name) %>% 
+  ## Make donor, CAR, and stim columns a factors
+  mutate(donor = as.factor(donor)) %>% 
+  mutate(CAR = as.factor(CAR)) %>% 
+  mutate(stim = as.factor(stim)) %>% 
+  # mutate(col.name = str_c(donor, CAR, stim, sep = "_")) %>% 
+  ## Remove line1, line2, line3 columns, as we don't need them.
+  dplyr::select(-c("line1", "line2", "line3"))
+```
+
+```{r}
+Data.dictionary
+```
+
+# Transcript-Gene-Pair: `tx2gene_df`
+
+We previously created the gtf, lookup table, and data matrix made from the salmon quant file loop. We will simply load it here.
+
+## Load the saved copy
+
+```{r}
+load(file = "sf.df.Rdata")
+```
+
+## Define subsets
+
+```{r}
+subset.samples <- Data.dictionary$col.name
+
+il8.subset.samples <- dplyr::filter(Data.dictionary, stim == "Il8")
+il8.subset.samples <- il8.subset.samples$col.name
+
+bead.subset.samples <- dplyr::filter(Data.dictionary, stim == "bead")
+bead.subset.samples <- bead.subset.samples$col.name
+
+no.subset.samples <- dplyr::filter(Data.dictionary, stim == "no")
+no.subset.samples <- no.subset.samples$col.name
+
+```
+
+## (Re)define meta data
+
+```{r}
+Data.dictionary.final <- Data.dictionary %>% 
+  dplyr::filter(col.name %in% subset.samples)
+
+il8.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% il8.subset.samples)
+
+bead.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% bead.subset.samples)
+
+no.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% no.subset.samples)
+```
+
+# Subset and filter count data
+
+```{r}
+il8.sf.df.data <- sf.df %>%
+  dplyr::select(all_of(il8.subset.samples)) %>%
+  drop_na() %>% 
+  ## Filter low expressors (<10)
+  mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
+  dplyr::filter(Rowsum == dim(il8.data.dictionary)[1]) %>% 
+  ## No longer need the column "Rowsum", we can remove it
+  dplyr::select(-Rowsum)
+
+bead.sf.df.data <- sf.df %>%
+  dplyr::select(all_of(bead.subset.samples)) %>%
+  drop_na() %>% 
+  ## Filter low expressors (<10)
+  mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
+  dplyr::filter(Rowsum == dim(bead.data.dictionary)[1]) %>% 
+  ## No longer need the column "Rowsum", we can remove it
+  dplyr::select(-Rowsum)
+
+no.sf.df.data <- sf.df %>%
+  dplyr::select(all_of(no.subset.samples)) %>%
+  drop_na() %>% 
+  ## Filter low expressors (<10)
+  mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
+  dplyr::filter(Rowsum == dim(no.data.dictionary)[1]) %>% 
+  ## No longer need the column "Rowsum", we can remove it
+  dplyr::select(-Rowsum)
+```
+
+# DESeq Object
+
+## Create SummarizeExperiment Object
+
+```{r}
+il8.sf.df.se <- SummarizedExperiment(assays = list(counts = as.matrix(il8.sf.df.data)),
+                                colData = il8.data.dictionary)
+
+bead.sf.df.se <- SummarizedExperiment(assays = list(counts = as.matrix(bead.sf.df.data)),
+                                colData = bead.data.dictionary)
+
+no.sf.df.se <- SummarizedExperiment(assays = list(counts = as.matrix(no.sf.df.data)),
+                                colData = no.data.dictionary)
+```
+
+## Create DESeq Object
+
+```{r}
+il8.sf.df.dds <- DESeqDataSet(il8.sf.df.se, design = ~CAR)
+
+bead.sf.df.dds <- DESeqDataSet(bead.sf.df.se, design = ~CAR)
+
+no.sf.df.dds <- DESeqDataSet(no.sf.df.se, design = ~CAR)
+```
+
+# PCA Plots
+
+```{r}
+il8.sf.df.se.pca <- il8.sf.df.se %>% 
+  keep_abundant() %>% 
+  scale_abundance() %>% 
+  reduce_dimensions(method = "PCA", .dims = 3)
+```
+
+## 2D
+
+```{r}
+# Use colourblind-friendly colours
+friendly_cols <- dittoSeq::dittoColors()
+
+# Set theme
+custom_theme <-
+  list(
+    scale_fill_manual(values = friendly_cols),
+    scale_color_manual(values = friendly_cols),
+    theme_bw() +
+      theme(
+        panel.border = element_blank(),
+        axis.line = element_line(),
+        panel.grid.major = element_line(size = 0.2),
+        panel.grid.minor = element_line(size = 0.1),
+        text = element_text(size = 9),
+        legend.position = "bottom",
+        strip.background = element_blank(),
+        axis.title.x = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
+        axis.title.y = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
+        axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1)
+      )
+  )
+
+```
+
+```{r}
+il8.sf.df.se.pca %>% 
+  pivot_sample() %>% 
+  ggplot(aes(x = PC1, y = PC2, colour = donor)) +
+  geom_point() +
+  geom_text_repel(aes(label = .sample), show.legend = FALSE, size = 3) +
+  custom_theme
+
+```
+
+
+
+# DE Analysis
+
+## Statistical Analysis
+
+```{r}
+il8.sf.df.dds <- DESeq(il8.sf.df.dds)
+
+bead.sf.df.dds <- DESeq(bead.sf.df.dds)
+
+no.sf.df.dds <- DESeq(no.sf.df.dds)
+```
+
+## Analysis Result
+
+```{r}
+il8.res.sf.df.dds <- results(il8.sf.df.dds,
+                        contrast = c("CAR", "B7C2", "B7"),
+                        alpha = 0.05)
+
+bead.res.sf.df.dds <- results(bead.sf.df.dds,
+                        contrast = c("CAR", "B7C2", "B7"),
+                        alpha = 0.05)
+
+no.res.sf.df.dds <- results(no.sf.df.dds,
+                        contrast = c("CAR", "B7C2", "B7"),
+                        alpha = 0.05)
+```
+
+# Annotation Table
+
+```{r}
+il8.sf.df.data.df <- il8.sf.df.data %>% 
+  rownames_to_column(var = "gene_id")
+
+bead.sf.df.data.df <- bead.sf.df.data %>% 
+  rownames_to_column(var = "gene_id")
+
+no.sf.df.data.df <- no.sf.df.data %>% 
+  rownames_to_column(var = "gene_id")
+```
+
+```{r}
+il8.res.sf.df.dds.annotation <- deseqresult2df(il8.res.sf.df.dds) %>% 
+  dplyr::rename(gene_id = id) %>% 
+  mutate(gene_symbol = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  mutate(gene_entrez = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "ENTREZID", multiVals = "first")) %>% 
+  mutate(gene_desc = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "GENENAME", multiVals = "first")) %>% 
+  relocate(gene_symbol, gene_entrez, gene_desc, .after = gene_id) %>% 
+  left_join(il8.sf.df.data.df, by = c("gene_id"="gene_id"))
+
+bead.res.sf.df.dds.annotation <- deseqresult2df(bead.res.sf.df.dds) %>% 
+  dplyr::rename(gene_id = id) %>% 
+  mutate(gene_symbol = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  mutate(gene_entrez = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "ENTREZID", multiVals = "first")) %>% 
+  mutate(gene_desc = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "GENENAME", multiVals = "first")) %>% 
+  relocate(gene_symbol, gene_entrez, gene_desc, .after = gene_id) %>% 
+  left_join(bead.sf.df.data.df, by = c("gene_id"="gene_id"))
+
+no.res.sf.df.dds.annotation <- deseqresult2df(no.res.sf.df.dds) %>% 
+  dplyr::rename(gene_id = id) %>% 
+  mutate(gene_symbol = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  mutate(gene_entrez = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "ENTREZID", multiVals = "first")) %>% 
+  mutate(gene_desc = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "GENENAME", multiVals = "first")) %>% 
+  relocate(gene_symbol, gene_entrez, gene_desc, .after = gene_id) %>% 
+  left_join(no.sf.df.data.df, by = c("gene_id"="gene_id"))
+```
+
+```{r}
+View(il8.res.sf.df.dds.annotation)
+```
+
+## Export Result
+
+Open in Microsoft Excel ...
+
+```{r}
+write_csv(il8.res.sf.df.dds.annotation, file = "deseq_results/IL8_DESeq2_analysis.csv")
+
+write_csv(bead.res.sf.df.dds.annotation, file = "deseq_results/Bead_DESeq2_analysis.csv")
+
+write_csv(no.res.sf.df.dds.annotation, file = "deseq_results/No_stim_DESeq2_anaylsis.csv")
+
+```
+
+# Quick Assessemnt
+
+```{r}
+sig.gene.cutoff = 0.05 ## Reduce significant gene list only p adjusted significant genes
+
+il8.res.sf.df.dds.annotation %>% 
+  dplyr::filter(padj <= sig.gene.cutoff) 
+
+bead.res.sf.df.dds.annotation |>
+  dplyr::filter(padj <= sig.gene.cutoff)
+
+no.res.sf.df.dds.annotation |>
+  dplyr::filter(padj <= sig.gene.cutoff)
+```
+
+# GeneTonic Prep
+
+## GeneTonic Annotation
+
+```{r}
+il8.sf.df.annotation <- deseqresult2df(il8.res.sf.df.dds) %>% 
+  dplyr::rename(gene_id = id) %>% 
+  mutate(gene_name = mapIds(org.Hs.eg.db, 
+                            keys = gene_id, 
+                            keytype = "ENSEMBL", 
+                            column = "SYMBOL", 
+                            multiVals = "first")) %>% 
+  dplyr::select(gene_id, gene_name) 
+
+bead.sf.df.annotation <- deseqresult2df(bead.res.sf.df.dds) %>% 
+  dplyr::rename(gene_id = id) %>% 
+  mutate(gene_name = mapIds(org.Hs.eg.db, 
+                            keys = gene_id, 
+                            keytype = "ENSEMBL", 
+                            column = "SYMBOL", 
+                            multiVals = "first")) %>% 
+  dplyr::select(gene_id, gene_name) -> il8.sf.df.annotation
+
+no.sf.df.annotation <- deseqresult2df(no.res.sf.df.dds) %>% 
+  dplyr::rename(gene_id = id) %>% 
+  mutate(gene_name = mapIds(org.Hs.eg.db, 
+                            keys = gene_id, 
+                            keytype = "ENSEMBL", 
+                            column = "SYMBOL", 
+                            multiVals = "first")) %>% 
+  dplyr::select(gene_id, gene_name)
+
+```
+
+## Enrichment Analysis
+
+### Extract gene symbol
+
+```{r}
+il8.enrich.of.interest <- deseqresult2df(il8.res.sf.df.dds) %>% 
+  # rownames_to_column(var = "Ensembl") %>% 
+  mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  dplyr::filter(padj < sig.gene.cutoff) %>% 
+  pull(Symbol)
+
+bead.enrich.of.interest <- deseqresult2df(bead.res.sf.df.dds) %>% 
+  # rownames_to_column(var = "Ensembl") %>% 
+  mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  dplyr::filter(padj < sig.gene.cutoff) %>% 
+  pull(Symbol)
+
+no.enrich.of.interest <- deseqresult2df(no.res.sf.df.dds) %>% 
+  # rownames_to_column(var = "Ensembl") %>% 
+  mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  dplyr::filter(padj < sig.gene.cutoff) %>% 
+  pull(Symbol)
+
+#length(enrich.of.interest)
+#head(enrich.of.interest)
+```
+
+## Background gene symbol
+
+```{r}
+il8.bg.ids <- deseqresult2df(il8.res.sf.df.dds) %>% 
+  mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  pull(Symbol)
+length(il8.bg.ids)
+```
+
+## Perform Pathway Analysis
+
+```{r}
+topgo.res.sf.df.dds = pcaExplorer::topGOtable(enrich.of.interest,
+                                              bg.ids,
+                                              ontology = "BP",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+### Reshape for Genetonic
+topgo.res.sf.df.dds = shake_topGOtableResult(topgo.res.sf.df.dds)
+# rownames(topgo.res.sf.df.dds) = NULL
+topgo.res.sf.df.dds = get_aggrscores(topgo.res.sf.df.dds, res.sf.df.dds, sf.df.annotation)
+```
+
+```{r}
+topgo.res.sf.df.dds
+```
+
+# Genetonic
+
+## SAVE Genetonic
+
+```{r}
+save(sf.df.dds, res.sf.df.dds, topgo.res.sf.df.dds, sf.df.annotation, file = "GeneTonic_inputs.Rdata")
+```
+
+```{r}
+load("GeneTonic_inputs.Rdata")
+```
+
+Submit data objects to `Genetonic` web browser
+
+```{r, eval=FALSE}
+GeneTonic(dds = sf.df.dds,
+          res_de = res.sf.df.dds,
+          res_enrich = topgo.res.sf.df.dds,
+          annotation_obj = sf.df.annotation,
+          project_id = "TEST1")
+```
+
