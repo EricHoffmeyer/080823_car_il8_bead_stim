@@ -50,7 +50,6 @@ dir.names = c(
 "quant_files/D3_B7_bead_stim_S17_L002",
 "quant_files/D3_B7_no_stim_S5_L002"
 )
-
 #results.dir <- file.path("deseq_results")
 #plots.dir <- file.path("plots")
 ```
@@ -200,7 +199,8 @@ il8.sf.df.se.pca <- il8.sf.df.se %>%
   reduce_dimensions(method = "PCA", .dims = 3)
 ```
 
-## 2D
+## 2D PCA
+Set up color palette and theme
 
 ```{r}
 # Use colourblind-friendly colours
@@ -227,6 +227,8 @@ custom_theme <-
   )
 
 ```
+
+Plot PCA
 
 ```{r}
 il8.sf.df.se.pca %>% 
@@ -360,7 +362,7 @@ bead.sf.df.annotation <- deseqresult2df(bead.res.sf.df.dds) %>%
                             keytype = "ENSEMBL", 
                             column = "SYMBOL", 
                             multiVals = "first")) %>% 
-  dplyr::select(gene_id, gene_name) -> il8.sf.df.annotation
+  dplyr::select(gene_id, gene_name)
 
 no.sf.df.annotation <- deseqresult2df(no.res.sf.df.dds) %>% 
   dplyr::rename(gene_id = id) %>% 
@@ -406,26 +408,57 @@ no.enrich.of.interest <- deseqresult2df(no.res.sf.df.dds) %>%
 il8.bg.ids <- deseqresult2df(il8.res.sf.df.dds) %>% 
   mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
   pull(Symbol)
-length(il8.bg.ids)
+#length(il8.bg.ids)
+
+bead.bg.ids <- deseqresult2df(bead.res.sf.df.dds) %>% 
+  mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  pull(Symbol)
+
+no.bg.ids <- deseqresult2df(no.res.sf.df.dds) %>% 
+  mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
+  pull(Symbol)
 ```
 
 ## Perform Pathway Analysis
 
 ```{r}
-topgo.res.sf.df.dds = pcaExplorer::topGOtable(enrich.of.interest,
-                                              bg.ids,
+#il8 stim
+il8.topgo.res.sf.df.dds = pcaExplorer::topGOtable(il8.enrich.of.interest,
+                                              il8.bg.ids,
                                               ontology = "BP",
                                               mapping = "org.Hs.eg.db",
                                               geneID = "symbol")
 
-### Reshape for Genetonic
-topgo.res.sf.df.dds = shake_topGOtableResult(topgo.res.sf.df.dds)
-# rownames(topgo.res.sf.df.dds) = NULL
-topgo.res.sf.df.dds = get_aggrscores(topgo.res.sf.df.dds, res.sf.df.dds, sf.df.annotation)
+## Reshape for Genetonic
+il8.topgo.res.sf.df.dds = shake_topGOtableResult(il8.topgo.res.sf.df.dds)
+il8.topgo.res.sf.df.dds = get_aggrscores(il8.topgo.res.sf.df.dds, il8.res.sf.df.dds, il8.sf.df.annotation)
+
+#Repeat for bead stim
+bead.topgo.res.sf.df.dds = pcaExplorer::topGOtable(bead.enrich.of.interest,
+                                              bead.bg.ids,
+                                              ontology = "BP",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+## Reshape for Genetonic
+bead.topgo.res.sf.df.dds = shake_topGOtableResult(bead.topgo.res.sf.df.dds)
+bead.topgo.res.sf.df.dds = get_aggrscores(bead.topgo.res.sf.df.dds, bead.res.sf.df.dds, bead.sf.df.annotation)
+
+#Repeat for no stim
+no.topgo.res.sf.df.dds = pcaExplorer::topGOtable(no.enrich.of.interest,
+                                              no.bg.ids,
+                                              ontology = "BP",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+## Reshape for Genetonic
+no.topgo.res.sf.df.dds = shake_topGOtableResult(no.topgo.res.sf.df.dds)
+no.topgo.res.sf.df.dds = get_aggrscores(no.topgo.res.sf.df.dds, no.res.sf.df.dds, no.sf.df.annotation)
 ```
 
 ```{r}
-topgo.res.sf.df.dds
+il8.topgo.res.sf.df.dds
+
 ```
 
 # Genetonic
@@ -433,7 +466,14 @@ topgo.res.sf.df.dds
 ## SAVE Genetonic
 
 ```{r}
-save(sf.df.dds, res.sf.df.dds, topgo.res.sf.df.dds, sf.df.annotation, file = "GeneTonic_inputs.Rdata")
+save(il8.sf.df.dds, il8.res.sf.df.dds, il8.topgo.res.sf.df.dds, il8.sf.df.annotation, 
+     file = "genetonic_results/il8_GeneTonic_inputs.Rdata")
+
+save(bead.sf.df.dds, bead.res.sf.df.dds, bead.topgo.res.sf.df.dds, bead.sf.df.annotation, 
+     file = "genetonic_results/bead_GeneTonic_inputs.Rdata")
+
+save(no.sf.df.dds, no.res.sf.df.dds, no.topgo.res.sf.df.dds, no.sf.df.annotation, 
+     file = "genetonic_results/no_GeneTonic_inputs.Rdata")
 ```
 
 ```{r}
@@ -443,10 +483,26 @@ load("GeneTonic_inputs.Rdata")
 Submit data objects to `Genetonic` web browser
 
 ```{r, eval=FALSE}
-GeneTonic(dds = sf.df.dds,
-          res_de = res.sf.df.dds,
-          res_enrich = topgo.res.sf.df.dds,
-          annotation_obj = sf.df.annotation,
-          project_id = "TEST1")
+GeneTonic(dds = il8.sf.df.dds,
+          res_de = il8.res.sf.df.dds,
+          res_enrich = il8.topgo.res.sf.df.dds,
+          annotation_obj = il8.sf.df.annotation,
+          project_id = "Il8 stim")
+
+GeneTonic(dds = bead.sf.df.dds,
+          res_de = bead.res.sf.df.dds,
+          res_enrich = bead.topgo.res.sf.df.dds,
+          annotation_obj = bead.sf.df.annotation,
+          project_id = "Bead stim")
+
+GeneTonic(dds = no.sf.df.dds,
+          res_de = no.res.sf.df.dds,
+          res_enrich = no.topgo.res.sf.df.dds,
+          annotation_obj = no.sf.df.annotation,
+          project_id = "Unstimulated")
+```
+
+```{r}
+sessionInfo()
 ```
 
