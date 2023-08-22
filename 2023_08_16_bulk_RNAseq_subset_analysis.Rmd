@@ -13,7 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 These libraries are required to perform this RNAseq analysis. Make sure you have install them before begin the analysis.
 
-```{r}
+```{r load libraries}
+suppressPackageStartupMessages({
 library(tidyverse)
 library(tidybulk)
 library(janitor)
@@ -25,11 +26,12 @@ library(pcaExplorer)
 library(AnnotationDbi)
 library(org.Hs.eg.db)
 library(topGO)
+})
 ```
 
 # Data Dictionary
 
-```{r}
+```{r dir.names}
 dir.names = c(
 "quant_files/D1_B7C2_Il8_stim_S8_L002",
 "quant_files/D1_B7C2_bead_stim_S14_L002",
@@ -56,14 +58,14 @@ dir.names = c(
 
 Convert the `vector` to `data.frame`.
 
-```{r}
+```{r data dictionary start}
 Data.dictionary <- data.frame(Orig.Name = dir.names, Folder.Name = dir.names) %>% 
   mutate(Folder.Name = str_remove(Folder.Name, pattern = "quant_files/"))
 ```
 
 A `DataFrame`:
 
-```{r}
+```{r view}
 Data.dictionary
 ```
 
@@ -71,7 +73,7 @@ Data.dictionary
 
 Perform these steps to transform the `data.frame` into desirable format.
 
-```{r}
+```{r format data dictionary}
 Data.dictionary <- Data.dictionary %>% 
   ## Create or duplicate the "Orig.Name" column and called it "Dup"
   mutate(Dup = Folder.Name) %>% 
@@ -91,7 +93,7 @@ Data.dictionary <- Data.dictionary %>%
   dplyr::select(-c("line1", "line2", "line3"))
 ```
 
-```{r}
+```{r view}
 Data.dictionary
 ```
 
@@ -101,15 +103,13 @@ We previously created the gtf, lookup table, and data matrix made from the salmo
 
 ## Load the saved copy
 
-```{r}
+```{r load sf.df}
 load(file = "sf.df.Rdata")
 ```
 
 ## Define subsets
 
-```{r}
-subset.samples <- Data.dictionary$col.name
-
+```{r subset data}
 il8.subset.samples <- dplyr::filter(Data.dictionary, stim == "Il8")
 il8.subset.samples <- il8.subset.samples$col.name
 
@@ -118,15 +118,11 @@ bead.subset.samples <- bead.subset.samples$col.name
 
 no.subset.samples <- dplyr::filter(Data.dictionary, stim == "no")
 no.subset.samples <- no.subset.samples$col.name
-
 ```
 
-## (Re)define meta data
+## Redefine meta data into subsets
 
-```{r}
-Data.dictionary.final <- Data.dictionary %>% 
-  dplyr::filter(col.name %in% subset.samples)
-
+```{r subset data dictionaries}
 il8.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% il8.subset.samples)
 
 bead.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% bead.subset.samples)
@@ -136,7 +132,7 @@ no.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% no.subset.sam
 
 # Subset and filter count data
 
-```{r}
+```{r filter count data}
 il8.sf.df.data <- sf.df %>%
   dplyr::select(all_of(il8.subset.samples)) %>%
   drop_na() %>% 
@@ -169,7 +165,7 @@ no.sf.df.data <- sf.df %>%
 
 ## Create SummarizeExperiment Object
 
-```{r}
+```{r Summarize Experiment}
 il8.sf.df.se <- SummarizedExperiment(assays = list(counts = as.matrix(il8.sf.df.data)),
                                 colData = il8.data.dictionary)
 
@@ -182,7 +178,7 @@ no.sf.df.se <- SummarizedExperiment(assays = list(counts = as.matrix(no.sf.df.da
 
 ## Create DESeq Object
 
-```{r}
+```{r DESeqDataSet}
 il8.sf.df.dds <- DESeqDataSet(il8.sf.df.se, design = ~CAR)
 
 bead.sf.df.dds <- DESeqDataSet(bead.sf.df.se, design = ~CAR)
@@ -192,7 +188,7 @@ no.sf.df.dds <- DESeqDataSet(no.sf.df.se, design = ~CAR)
 
 # PCA Plots
 
-```{r}
+```{r PCA}
 il8.sf.df.se.pca <- il8.sf.df.se %>% 
   keep_abundant() %>% 
   scale_abundance() %>% 
@@ -202,7 +198,7 @@ il8.sf.df.se.pca <- il8.sf.df.se %>%
 ## 2D PCA
 Set up color palette and theme
 
-```{r}
+```{r color theme}
 # Use colourblind-friendly colours
 friendly_cols <- dittoSeq::dittoColors()
 
@@ -230,7 +226,7 @@ custom_theme <-
 
 Plot PCA
 
-```{r}
+```{r PCA plot}
 il8.sf.df.se.pca %>% 
   pivot_sample() %>% 
   ggplot(aes(x = PC1, y = PC2, colour = donor)) +
@@ -246,7 +242,7 @@ il8.sf.df.se.pca %>%
 
 ## Statistical Analysis
 
-```{r}
+```{r DESeq on subsets}
 il8.sf.df.dds <- DESeq(il8.sf.df.dds)
 
 bead.sf.df.dds <- DESeq(bead.sf.df.dds)
@@ -256,7 +252,7 @@ no.sf.df.dds <- DESeq(no.sf.df.dds)
 
 ## Analysis Result
 
-```{r}
+```{r results()}
 il8.res.sf.df.dds <- results(il8.sf.df.dds,
                         contrast = c("CAR", "B7C2", "B7"),
                         alpha = 0.05)
@@ -272,7 +268,7 @@ no.res.sf.df.dds <- results(no.sf.df.dds,
 
 # Annotation Table
 
-```{r}
+```{r start annotation tables}
 il8.sf.df.data.df <- il8.sf.df.data %>% 
   rownames_to_column(var = "gene_id")
 
@@ -283,7 +279,7 @@ no.sf.df.data.df <- no.sf.df.data %>%
   rownames_to_column(var = "gene_id")
 ```
 
-```{r}
+```{r add gene_symbol, gene_entrez, and gene_desc to annotation tables}
 il8.res.sf.df.dds.annotation <- deseqresult2df(il8.res.sf.df.dds) %>% 
   dplyr::rename(gene_id = id) %>% 
   mutate(gene_symbol = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
@@ -309,26 +305,25 @@ no.res.sf.df.dds.annotation <- deseqresult2df(no.res.sf.df.dds) %>%
   left_join(no.sf.df.data.df, by = c("gene_id"="gene_id"))
 ```
 
-```{r}
+```{r view}
 View(il8.res.sf.df.dds.annotation)
 ```
 
 ## Export Result
 
-Open in Microsoft Excel ...
+Write DESeq results to cxv files
 
-```{r}
+```{r write DESeq results}
 write_csv(il8.res.sf.df.dds.annotation, file = "deseq_results/IL8_DESeq2_analysis.csv")
 
 write_csv(bead.res.sf.df.dds.annotation, file = "deseq_results/Bead_DESeq2_analysis.csv")
 
 write_csv(no.res.sf.df.dds.annotation, file = "deseq_results/No_stim_DESeq2_anaylsis.csv")
-
 ```
 
 # Quick Assessemnt
 
-```{r}
+```{r filter padj <= 0.05}
 sig.gene.cutoff = 0.05 ## Reduce significant gene list only p adjusted significant genes
 
 il8.res.sf.df.dds.annotation %>% 
@@ -345,7 +340,7 @@ no.res.sf.df.dds.annotation |>
 
 ## GeneTonic Annotation
 
-```{r}
+```{r create/format annotation df for GeneTonic}
 il8.sf.df.annotation <- deseqresult2df(il8.res.sf.df.dds) %>% 
   dplyr::rename(gene_id = id) %>% 
   mutate(gene_name = mapIds(org.Hs.eg.db, 
@@ -379,7 +374,7 @@ no.sf.df.annotation <- deseqresult2df(no.res.sf.df.dds) %>%
 
 ### Extract gene symbol
 
-```{r}
+```{r enriched genes vectors for pathway analysis}
 il8.enrich.of.interest <- deseqresult2df(il8.res.sf.df.dds) %>% 
   # rownames_to_column(var = "Ensembl") %>% 
   mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
@@ -404,7 +399,7 @@ no.enrich.of.interest <- deseqresult2df(no.res.sf.df.dds) %>%
 
 ## Background gene symbol
 
-```{r}
+```{r background gene vectors}
 il8.bg.ids <- deseqresult2df(il8.res.sf.df.dds) %>% 
   mutate(Symbol = mapIds(org.Hs.eg.db, keys = id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
   pull(Symbol)
@@ -425,7 +420,7 @@ no.bg.ids <- deseqresult2df(no.res.sf.df.dds) %>%
 #il8 stim
 il8.topgo.res.sf.df.dds = pcaExplorer::topGOtable(il8.enrich.of.interest,
                                               il8.bg.ids,
-                                              ontology = "BP",
+                                              ontology = "CC",
                                               mapping = "org.Hs.eg.db",
                                               geneID = "symbol")
 
@@ -433,7 +428,7 @@ il8.topgo.res.sf.df.dds = pcaExplorer::topGOtable(il8.enrich.of.interest,
 il8.topgo.res.sf.df.dds = shake_topGOtableResult(il8.topgo.res.sf.df.dds)
 il8.topgo.res.sf.df.dds = get_aggrscores(il8.topgo.res.sf.df.dds, il8.res.sf.df.dds, il8.sf.df.annotation)
 
-#Repeat for bead stim
+#bead stim
 bead.topgo.res.sf.df.dds = pcaExplorer::topGOtable(bead.enrich.of.interest,
                                               bead.bg.ids,
                                               ontology = "BP",
@@ -444,7 +439,7 @@ bead.topgo.res.sf.df.dds = pcaExplorer::topGOtable(bead.enrich.of.interest,
 bead.topgo.res.sf.df.dds = shake_topGOtableResult(bead.topgo.res.sf.df.dds)
 bead.topgo.res.sf.df.dds = get_aggrscores(bead.topgo.res.sf.df.dds, bead.res.sf.df.dds, bead.sf.df.annotation)
 
-#Repeat for no stim
+#no stim
 no.topgo.res.sf.df.dds = pcaExplorer::topGOtable(no.enrich.of.interest,
                                               no.bg.ids,
                                               ontology = "BP",
@@ -456,9 +451,8 @@ no.topgo.res.sf.df.dds = shake_topGOtableResult(no.topgo.res.sf.df.dds)
 no.topgo.res.sf.df.dds = get_aggrscores(no.topgo.res.sf.df.dds, no.res.sf.df.dds, no.sf.df.annotation)
 ```
 
-```{r}
+```{r view}
 il8.topgo.res.sf.df.dds
-
 ```
 
 # Genetonic
@@ -500,8 +494,58 @@ GeneTonic(dds = no.sf.df.dds,
           res_enrich = no.topgo.res.sf.df.dds,
           annotation_obj = no.sf.df.annotation,
           project_id = "Unstimulated")
+
+
 ```
 
+```{r}
+# this is the part dedicated to the function call
+il8_gss_mat <- gs_scores(
+  se = vst(il8.sf.df.dds),
+  res_de = il8.res.sf.df.dds,
+  res_enrich = il8.topgo.res.sf.df.dds,
+  annotation_obj = il8.sf.df.annotation
+)
+
+il8_gss_plot <- gs_scoresheat(
+  il8_gss_mat,
+  n_gs = 15
+)
+#Save plot
+ggsave("plots/il8_pathway_heatmap.png",
+       plot = il8_gss_plot,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in")
+```
+
+
+```{r}
+# this is the part dedicated to the function call
+res_enhanced <- get_aggrscores(
+  res_enrich = il8.topgo.res.sf.df.dds,
+  res_de = il8.res.sf.df.dds,
+  annotation_obj = il8.sf.df.annotation
+)
+
+temp <- gs_summary_overview(
+  res_enrich = res_enhanced,
+  n_gs = 15
+)
+
+ggsave("plots/il8_pathway_analysis.png",
+       plot = temp,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in",
+       bg = "white")
+```
+
+
+
+# Session Info
 ```{r}
 sessionInfo()
 ```

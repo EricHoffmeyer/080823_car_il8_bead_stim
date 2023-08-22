@@ -232,11 +232,6 @@ Data.dictionary$col.name
 ```{r}
 subset.samples = Data.dictionary$col.name
 
-il8.subset.samples <- dplyr::filter(Data.dictionary, stim == "Il8")
-
-bead.subset.samples <- dplyr::filter(Data.dictionary, stim == "bead")
-
-no.subset.samples <- dplyr::filter(Data.dictionary, stim == "no")
 ```
 
 ## Remove Outlier
@@ -257,18 +252,11 @@ subset.samples = c(
 ```{r}
 Data.dictionary %>% 
   dplyr::filter(col.name %in% subset.samples) -> Data.dictionary.final
-
-il8.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% il8.subset.samples)
-
-bead.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% bead.subset.samples)
-
-no.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% no.subset.samples)
 ```
 
 # Subset and filter count data
 
 ```{r}
-
 sf.df.data = sf.df %>%
   ## Select or seubset the desired samples 
   dplyr::select(subset.samples) %>%
@@ -300,7 +288,7 @@ Data.dictionary.final
 ```
 
 ```{r}
-sf.df.dds = DESeqDataSet(sf.df.se, design = ~stim)
+sf.df.dds = DESeqDataSet(sf.df.se, design = ~CAR)
 ```
 
 # PCA Plot
@@ -394,14 +382,9 @@ Data.dictionary.final
 
 
 ```{r}
-il8.res.sf.df.dds = results(sf.df.dds,
-                        contrast = c("stim", "Il8", "no"),
+res.sf.df.dds = results(sf.df.dds,
+                        contrast = c("CAR", "B7C2", "B7"),
                         alpha = 0.05)
-
-bead.res.sf.df.dds = results(sf.df.dds,
-                        contrast = c("stim", "bead", "no"),
-                        alpha = 0.05)
-
 
 ```
 
@@ -414,26 +397,17 @@ sf.df.data.df
 ```
 
 ```{r}
-deseqresult2df(il8.res.sf.df.dds) %>% 
+deseqresult2df(res.sf.df.dds) %>% 
   dplyr::rename(gene_id = id) %>% 
   mutate(gene_symbol = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
   mutate(gene_entrez = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "ENTREZID", multiVals = "first")) %>% 
   mutate(gene_desc = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "GENENAME", multiVals = "first")) %>% 
   relocate(gene_symbol, gene_entrez, gene_desc, .after = gene_id) %>% 
-  left_join(sf.df.data.df, by = c("gene_id"="gene_id")) -> il8.res.sf.df.dds.annotation
-
-deseqresult2df(bead.res.sf.df.dds) %>% 
-  dplyr::rename(gene_id = id) %>% 
-  mutate(gene_symbol = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
-  mutate(gene_entrez = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "ENTREZID", multiVals = "first")) %>% 
-  mutate(gene_desc = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "GENENAME", multiVals = "first")) %>% 
-  relocate(gene_symbol, gene_entrez, gene_desc, .after = gene_id) %>% 
-  left_join(sf.df.data.df, by = c("gene_id"="gene_id")) -> bead.res.sf.df.dds.annotation
-
+  left_join(sf.df.data.df, by = c("gene_id"="gene_id")) -> res.sf.df.dds.annotation
 ```
 
 ```{r}
-View(il8.res.sf.df.dds.annotation)
+View(res.sf.df.dds.annotation)
 ```
 
 ## Export Result
@@ -441,9 +415,7 @@ View(il8.res.sf.df.dds.annotation)
 Open in Microsoft Excel ...
 
 ```{r}
-write_csv(il8.res.sf.df.dds.annotation, file = "IL8_DESeq2_Analysis_Result.csv")
-
-write_csv(bead.res.sf.df.dds.annotation, file = "Bead_DESeq2_Analysis_Result.csv")
+write_csv(res.sf.df.dds.annotation, file = "CAR_DESeq2_Analysis_Result.csv")
 ```
 
 # Quick Assessemnt
