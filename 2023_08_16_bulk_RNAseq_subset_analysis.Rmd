@@ -31,6 +31,8 @@ library(topGO)
 
 # Data Dictionary
 
+Creating a variable with the names of all the sample folders
+
 ```{r dir.names}
 dir.names = c(
 "quant_files/D1_B7C2_Il8_stim_S8_L002",
@@ -52,8 +54,6 @@ dir.names = c(
 "quant_files/D3_B7_bead_stim_S17_L002",
 "quant_files/D3_B7_no_stim_S5_L002"
 )
-#results.dir <- file.path("deseq_results")
-#plots.dir <- file.path("plots")
 ```
 
 Convert the `vector` to `data.frame`.
@@ -109,6 +109,8 @@ load(file = "sf.df.Rdata")
 
 ## Define subsets
 
+Breaking up the data into three subsets: il8, bead, and bead (stim condition). DESeq will compare the B7C2 CAR to the B7 CAR in each of these stim conditions.
+
 ```{r subset data}
 il8.subset.samples <- dplyr::filter(Data.dictionary, stim == "Il8")
 il8.subset.samples <- il8.subset.samples$col.name
@@ -121,6 +123,8 @@ no.subset.samples <- no.subset.samples$col.name
 ```
 
 ## Redefine meta data into subsets
+
+Create data dictionaries that correspond to the subsets.
 
 ```{r subset data dictionaries}
 il8.data.dictionary <- dplyr::filter(Data.dictionary, col.name %in% il8.subset.samples)
@@ -139,7 +143,7 @@ il8.sf.df.data <- sf.df %>%
   ## Filter low expressors (<10)
   mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
   dplyr::filter(Rowsum == dim(il8.data.dictionary)[1]) %>% 
-  ## No longer need the column "Rowsum", we can remove it
+  ## bead longer need the column "Rowsum", we can remove it
   dplyr::select(-Rowsum)
 
 bead.sf.df.data <- sf.df %>%
@@ -148,7 +152,7 @@ bead.sf.df.data <- sf.df %>%
   ## Filter low expressors (<10)
   mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
   dplyr::filter(Rowsum == dim(bead.data.dictionary)[1]) %>% 
-  ## No longer need the column "Rowsum", we can remove it
+  ## bead longer need the column "Rowsum", we can remove it
   dplyr::select(-Rowsum)
 
 no.sf.df.data <- sf.df %>%
@@ -157,7 +161,7 @@ no.sf.df.data <- sf.df %>%
   ## Filter low expressors (<10)
   mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
   dplyr::filter(Rowsum == dim(no.data.dictionary)[1]) %>% 
-  ## No longer need the column "Rowsum", we can remove it
+  ## no longer need the column "Rowsum", we can remove it
   dplyr::select(-Rowsum)
 ```
 
@@ -177,6 +181,8 @@ no.sf.df.se <- SummarizedExperiment(assays = list(counts = as.matrix(no.sf.df.da
 ```
 
 ## Create DESeq Object
+
+The design will use CAR as the factor to run the comparison.
 
 ```{r DESeqDataSet}
 il8.sf.df.dds <- DESeqDataSet(il8.sf.df.se, design = ~CAR)
@@ -212,7 +218,7 @@ custom_theme <-
         panel.border = element_blank(),
         axis.line = element_line(),
         panel.grid.major = element_line(size = 0.2),
-        panel.grid.minor = element_line(size = 0.1),
+        panel.grid.mibeadr = element_line(size = 0.1),
         text = element_text(size = 9),
         legend.position = "bottom",
         strip.background = element_blank(),
@@ -235,8 +241,6 @@ il8.sf.df.se.pca %>%
   custom_theme
 
 ```
-
-
 
 # DE Analysis
 
@@ -266,7 +270,7 @@ no.res.sf.df.dds <- results(no.sf.df.dds,
                         alpha = 0.05)
 ```
 
-# Annotation Table
+# annotation Table
 
 ```{r start annotation tables}
 il8.sf.df.data.df <- il8.sf.df.data %>% 
@@ -314,14 +318,16 @@ View(il8.res.sf.df.dds.annotation)
 Write DESeq results to cxv files
 
 ```{r write DESeq results}
-write_csv(il8.res.sf.df.dds.annotation, file = "deseq_results/IL8_DESeq2_analysis.csv")
+write_csv(il8.res.sf.df.dds.annotation, file = "deseq_results/il8_DESeq2_analysis.csv")
 
-write_csv(bead.res.sf.df.dds.annotation, file = "deseq_results/Bead_DESeq2_analysis.csv")
+write_csv(bead.res.sf.df.dds.annotation, file = "deseq_results/bead_DESeq2_analysis.csv")
 
-write_csv(no.res.sf.df.dds.annotation, file = "deseq_results/No_stim_DESeq2_anaylsis.csv")
+write_csv(no.res.sf.df.dds.annotation, file = "deseq_results/no_stim_DESeq2_anaylsis.csv")
 ```
 
 # Quick Assessemnt
+
+This DOES NOT change the dataframes. It is only meant to look at the number of significant genes to determine if we need to trim the lists down before further processing.
 
 ```{r filter padj <= 0.05}
 sig.gene.cutoff = 0.05 ## Reduce significant gene list only p adjusted significant genes
@@ -338,7 +344,7 @@ no.res.sf.df.dds.annotation |>
 
 # GeneTonic Prep
 
-## GeneTonic Annotation
+## GeneTonic annotation
 
 ```{r create/format annotation df for GeneTonic}
 il8.sf.df.annotation <- deseqresult2df(il8.res.sf.df.dds) %>% 
@@ -367,7 +373,6 @@ no.sf.df.annotation <- deseqresult2df(no.res.sf.df.dds) %>%
                             column = "SYMBOL", 
                             multiVals = "first")) %>% 
   dplyr::select(gene_id, gene_name)
-
 ```
 
 ## Enrichment Analysis
@@ -416,11 +421,14 @@ no.bg.ids <- deseqresult2df(no.res.sf.df.dds) %>%
 
 ## Perform Pathway Analysis
 
-```{r}
-#il8 stim
+### IL-8 stim
+
+Here is where I will deviate from Tzu's original script a little. While BP (Biological Processes) is the main gene ontology branch people consider, I want to run all three ontologies.
+
+```{r il8 pathway analysis}
 il8.topgo.res.sf.df.dds = pcaExplorer::topGOtable(il8.enrich.of.interest,
                                               il8.bg.ids,
-                                              ontology = "CC",
+                                              ontology = "BP",
                                               mapping = "org.Hs.eg.db",
                                               geneID = "symbol")
 
@@ -428,7 +436,63 @@ il8.topgo.res.sf.df.dds = pcaExplorer::topGOtable(il8.enrich.of.interest,
 il8.topgo.res.sf.df.dds = shake_topGOtableResult(il8.topgo.res.sf.df.dds)
 il8.topgo.res.sf.df.dds = get_aggrscores(il8.topgo.res.sf.df.dds, il8.res.sf.df.dds, il8.sf.df.annotation)
 
-#bead stim
+il8.mf.topgo.res.sf.df.dds = pcaExplorer::topGOtable(il8.enrich.of.interest,
+                                              il8.bg.ids,
+                                              ontology = "MF",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+## Reshape for Genetonic
+il8.mf.topgo.res.sf.df.dds = shake_topGOtableResult(il8.mf.topgo.res.sf.df.dds)
+il8.mf.topgo.res.sf.df.dds = get_aggrscores(il8.mf.topgo.res.sf.df.dds, il8.res.sf.df.dds, il8.sf.df.annotation)
+
+il8.cc.topgo.res.sf.df.dds = pcaExplorer::topGOtable(il8.enrich.of.interest,
+                                              il8.bg.ids,
+                                              ontology = "CC",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+## Reshape for Genetonic
+il8.cc.topgo.res.sf.df.dds = shake_topGOtableResult(il8.cc.topgo.res.sf.df.dds)
+il8.cc.topgo.res.sf.df.dds = get_aggrscores(il8.cc.topgo.res.sf.df.dds, il8.res.sf.df.dds, il8.sf.df.annotation)
+```
+
+Now I can bind these resulting dataframes together and arrange them by p value. But the combined dataframe is too large to interact with some GeneTonic functions, so I will trim it down to the typical 200 rows.
+
+```{r combine and trim analysis results}
+il8.topgo.res.sf.df.dds <- rbind(il8.topgo.res.sf.df.dds, il8.mf.topgo.res.sf.df.dds, il8.cc.topgo.res.sf.df.dds) |>
+  arrange(gs_pvalue)
+
+il8.topgo.res.sf.df.dds <- il8.topgo.res.sf.df.dds[1:200,]
+```
+
+```{r save dds files for genetonic}
+save(il8.sf.df.dds, il8.res.sf.df.dds, il8.topgo.res.sf.df.dds, il8.sf.df.annotation,
+     file = "genetonic_results/il8_GeneTonic_inputs.Rdata")
+```
+
+Submit data objects to `Genetonic` web browser
+
+```{r il8 genetonic, eval=FALSE}
+GeneTonic(dds = il8.sf.df.dds,
+          res_de = il8.res.sf.df.dds,
+          res_enrich = il8.topgo.res.sf.df.dds,
+          annotation_obj = il8.sf.df.annotation,
+          project_id = "il8 stim")
+```
+
+Remove all il8 variables
+```{r}
+rm.list <- grep("il8", x = ls(), value = T)
+
+rm(list = rm.list)
+```
+
+### bead stim
+
+Repeating the process for bead stim condition.
+
+```{r bead pathway analysis}
 bead.topgo.res.sf.df.dds = pcaExplorer::topGOtable(bead.enrich.of.interest,
                                               bead.bg.ids,
                                               ontology = "BP",
@@ -439,7 +503,63 @@ bead.topgo.res.sf.df.dds = pcaExplorer::topGOtable(bead.enrich.of.interest,
 bead.topgo.res.sf.df.dds = shake_topGOtableResult(bead.topgo.res.sf.df.dds)
 bead.topgo.res.sf.df.dds = get_aggrscores(bead.topgo.res.sf.df.dds, bead.res.sf.df.dds, bead.sf.df.annotation)
 
-#no stim
+bead.mf.topgo.res.sf.df.dds = pcaExplorer::topGOtable(bead.enrich.of.interest,
+                                              bead.bg.ids,
+                                              ontology = "MF",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+## Reshape for Genetonic
+bead.mf.topgo.res.sf.df.dds = shake_topGOtableResult(bead.mf.topgo.res.sf.df.dds)
+bead.mf.topgo.res.sf.df.dds = get_aggrscores(bead.mf.topgo.res.sf.df.dds, bead.res.sf.df.dds, bead.sf.df.annotation)
+
+bead.cc.topgo.res.sf.df.dds = pcaExplorer::topGOtable(bead.enrich.of.interest,
+                                              bead.bg.ids,
+                                              ontology = "CC",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+## Reshape for Genetonic
+bead.cc.topgo.res.sf.df.dds = shake_topGOtableResult(bead.cc.topgo.res.sf.df.dds)
+bead.cc.topgo.res.sf.df.dds = get_aggrscores(bead.cc.topgo.res.sf.df.dds, bead.res.sf.df.dds, bead.sf.df.annotation)
+```
+
+
+```{r combine and trim analysis results}
+bead.topgo.res.sf.df.dds <- rbind(bead.topgo.res.sf.df.dds, bead.mf.topgo.res.sf.df.dds, bead.cc.topgo.res.sf.df.dds) |>
+  arrange(gs_pvalue)
+
+bead.topgo.res.sf.df.dds <- bead.topgo.res.sf.df.dds[1:200,]
+```
+
+```{r save dds files for genetonic}
+save(bead.sf.df.dds, bead.res.sf.df.dds, bead.topgo.res.sf.df.dds, bead.sf.df.annotation,
+     file = "genetonic_results/bead_GeneTonic_inputs.Rdata")
+```
+
+Submit data objects to `Genetonic` web browser
+
+```{r bead genetonic, eval=FALSE}
+GeneTonic(dds = bead.sf.df.dds,
+          res_de = bead.res.sf.df.dds,
+          res_enrich = bead.topgo.res.sf.df.dds,
+          annotation_obj = bead.sf.df.annotation,
+          project_id = "bead stim")
+```
+
+Remove all bead variables
+```{r}
+rm.list <- grep("bead", x = ls(), value = T)
+
+rm(list = rm.list)
+```
+
+
+### no stim
+
+Repeating the process for no stim condition.
+
+```{r no pathway analysis}
 no.topgo.res.sf.df.dds = pcaExplorer::topGOtable(no.enrich.of.interest,
                                               no.bg.ids,
                                               ontology = "BP",
@@ -449,99 +569,59 @@ no.topgo.res.sf.df.dds = pcaExplorer::topGOtable(no.enrich.of.interest,
 ## Reshape for Genetonic
 no.topgo.res.sf.df.dds = shake_topGOtableResult(no.topgo.res.sf.df.dds)
 no.topgo.res.sf.df.dds = get_aggrscores(no.topgo.res.sf.df.dds, no.res.sf.df.dds, no.sf.df.annotation)
+
+no.mf.topgo.res.sf.df.dds = pcaExplorer::topGOtable(no.enrich.of.interest,
+                                              no.bg.ids,
+                                              ontology = "MF",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+## Reshape for Genetonic
+no.mf.topgo.res.sf.df.dds = shake_topGOtableResult(no.mf.topgo.res.sf.df.dds)
+no.mf.topgo.res.sf.df.dds = get_aggrscores(no.mf.topgo.res.sf.df.dds, no.res.sf.df.dds, no.sf.df.annotation)
+
+no.cc.topgo.res.sf.df.dds = pcaExplorer::topGOtable(no.enrich.of.interest,
+                                              no.bg.ids,
+                                              ontology = "CC",
+                                              mapping = "org.Hs.eg.db",
+                                              geneID = "symbol")
+
+## Reshape for Genetonic
+no.cc.topgo.res.sf.df.dds = shake_topGOtableResult(no.cc.topgo.res.sf.df.dds)
+no.cc.topgo.res.sf.df.dds = get_aggrscores(no.cc.topgo.res.sf.df.dds, no.res.sf.df.dds, no.sf.df.annotation)
 ```
 
-```{r view}
-il8.topgo.res.sf.df.dds
+
+```{r combine and trim analysis results}
+no.topgo.res.sf.df.dds <- rbind(no.topgo.res.sf.df.dds, no.mf.topgo.res.sf.df.dds, no.cc.topgo.res.sf.df.dds) |>
+  arrange(gs_pvalue)
+
+no.topgo.res.sf.df.dds <- no.topgo.res.sf.df.dds[1:200,]
 ```
 
-# Genetonic
-
-## SAVE Genetonic
-
-```{r}
-save(il8.sf.df.dds, il8.res.sf.df.dds, il8.topgo.res.sf.df.dds, il8.sf.df.annotation, 
-     file = "genetonic_results/il8_GeneTonic_inputs.Rdata")
-
-save(bead.sf.df.dds, bead.res.sf.df.dds, bead.topgo.res.sf.df.dds, bead.sf.df.annotation, 
-     file = "genetonic_results/bead_GeneTonic_inputs.Rdata")
-
-save(no.sf.df.dds, no.res.sf.df.dds, no.topgo.res.sf.df.dds, no.sf.df.annotation, 
+```{r save dds files for genetonic}
+save(no.sf.df.dds, no.res.sf.df.dds, no.topgo.res.sf.df.dds, no.sf.df.annotation,
      file = "genetonic_results/no_GeneTonic_inputs.Rdata")
-```
-
-```{r}
-load("GeneTonic_inputs.Rdata")
 ```
 
 Submit data objects to `Genetonic` web browser
 
-```{r, eval=FALSE}
-GeneTonic(dds = il8.sf.df.dds,
-          res_de = il8.res.sf.df.dds,
-          res_enrich = il8.topgo.res.sf.df.dds,
-          annotation_obj = il8.sf.df.annotation,
-          project_id = "Il8 stim")
-
-GeneTonic(dds = bead.sf.df.dds,
-          res_de = bead.res.sf.df.dds,
-          res_enrich = bead.topgo.res.sf.df.dds,
-          annotation_obj = bead.sf.df.annotation,
-          project_id = "Bead stim")
-
+```{r no genetonic, eval=FALSE}
 GeneTonic(dds = no.sf.df.dds,
           res_de = no.res.sf.df.dds,
           res_enrich = no.topgo.res.sf.df.dds,
           annotation_obj = no.sf.df.annotation,
-          project_id = "Unstimulated")
-
-
+          project_id = "no stim")
 ```
 
+Remove all no variables
 ```{r}
-# this is the part dedicated to the function call
-il8_gss_mat <- gs_scores(
-  se = vst(il8.sf.df.dds),
-  res_de = il8.res.sf.df.dds,
-  res_enrich = il8.topgo.res.sf.df.dds,
-  annotation_obj = il8.sf.df.annotation
-)
+rm.list <- grep("no", x = ls(), value = T)
 
-il8_gss_plot <- gs_scoresheat(
-  il8_gss_mat,
-  n_gs = 15
-)
-#Save plot
-ggsave("plots/il8_pathway_heatmap.png",
-       plot = il8_gss_plot,
-       device = "png",
-       width = 8,
-       height = 6,
-       units = "in")
+rm(list = rm.list)
 ```
 
 
-```{r}
-# this is the part dedicated to the function call
-res_enhanced <- get_aggrscores(
-  res_enrich = il8.topgo.res.sf.df.dds,
-  res_de = il8.res.sf.df.dds,
-  annotation_obj = il8.sf.df.annotation
-)
-
-temp <- gs_summary_overview(
-  res_enrich = res_enhanced,
-  n_gs = 15
-)
-
-ggsave("plots/il8_pathway_analysis.png",
-       plot = temp,
-       device = "png",
-       width = 8,
-       height = 6,
-       units = "in",
-       bg = "white")
-```
 
 
 
