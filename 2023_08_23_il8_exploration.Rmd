@@ -1,0 +1,318 @@
+---
+title: "GeneTonic Il8 stim exploration: B7C2 vs B7 CAR T cells"
+#output: html_notebook
+---
+
+# Load Libraries
+
+These libraries are required to perform this RNAseq analysis. Make sure you have install them before begin the analysis.
+
+```{r load libraries}
+suppressPackageStartupMessages({
+library(tidyverse)
+library(plotly)
+library(ggrepel)
+library(GeneTonic)
+library(ComplexHeatmap)
+library(DESeq2)
+})
+```
+
+# Load data
+
+Previously created in `2023_08_16_subset_analysis.`
+
+```{r load genetonic inputs}
+load("genetonic_results/il8_GeneTonic_inputs.Rdata")
+```
+
+# Run
+
+Now we can launch a GeneTonic browser to look at the data.
+
+```{r il8 genetonic}
+GeneTonic(dds = il8.sf.df.dds,
+          res_de = il8.res.sf.df.dds,
+          res_enrich = il8.topgo.res.sf.df.dds,
+          annotation_obj = il8.sf.df.annotation,
+          project_id = "Il8 stim")
+```
+
+# Pathway overview graphs
+
+After exploring the data in GeneTonic, I want to save some of the plots. To do this, I can get example code to create the plot from the GeneTonic browser. I will copy/paste the code in here and change the relevant variable names.
+
+## Pathway heatmap
+
+```{r pathway heatmap}
+il8_gss_mat <- gs_scores(se = vst(il8.sf.df.dds),
+                         res_de = il8.res.sf.df.dds,
+                         res_enrich = il8.topgo.res.sf.df.dds,
+                         annotation_obj = il8.sf.df.annotation)
+
+il8_gss_plot <- gs_scoresheat(il8_gss_mat, n_gs = 15)
+
+il8_gss_plot
+```
+
+```{r save path heatmap}
+ggsave("plots/il8/il8_pathway_heatmap.png",
+       plot = il8_gss_plot,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in")
+```
+
+## Pathway by p value (z score)
+
+```{r pathway plot}
+il8_summary <- gs_summary_overview(res_enrich = il8.topgo.res.sf.df.dds, n_gs = 15)
+
+il8_summary
+```
+
+```{r save path plot}
+ggsave("plots/il8/il8_pathway_analysis.png",
+       plot = il8_summary,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in",
+       bg = "white")
+```
+
+# Individual pathway heatmaps
+
+Mike requested heatmaps for genes in specific pathways from the previous graphs. Here I will generate them.
+
+## Positive regulation of IL-12 production
+
+```{r il12 heatmap}
+il12_heatmap <- gs_heatmap(se = vst(il8.sf.df.dds),
+           res_de = il8.res.sf.df.dds,
+           res_enrich = il8.topgo.res.sf.df.dds,
+           annotation_obj = il8.sf.df.annotation,
+           geneset_id = "GO:0032735",
+           cluster_columns = TRUE,
+           anno_col_info = "CAR",
+           scale_row = TRUE,
+           plot_title = "Positive Regulation of IL-12 production (GO:0032735)")
+```
+
+```{r save il-12 heatmap}
+png(filename = "plots/il8/il12_pathway_heatmap.png",
+    width = 8,
+    height = 6,
+    units = "in",
+    res = 600)
+
+il12_heatmap
+
+dev.off()
+```
+
+## Innate Immune Response Heatmap
+
+```{r IIR heatmap}
+iir_heatmap <- gs_heatmap(se = vst(il8.sf.df.dds),
+           res_de = il8.res.sf.df.dds,
+           res_enrich = il8.topgo.res.sf.df.dds,
+           annotation_obj = il8.sf.df.annotation,
+           geneset_id = "GO:0045087",
+           cluster_columns = TRUE,
+           anno_col_info = "CAR",
+           scale_row = TRUE,
+           plot_title = "Innate Immune Response (GO:0045087)")
+```
+
+```{r save IIR heatmap}
+png(filename = "plots/il8/iir_pathway_heatmap.png",
+    width = 8,
+    height = 8,
+    units = "in",
+    res = 600)
+
+iir_heatmap
+
+dev.off()
+```
+
+## Cellular Immune Response to Virus
+
+```{r CRTV heatmap}
+crtv_heatmap <- gs_heatmap(se = vst(il8.sf.df.dds),
+           res_de = il8.res.sf.df.dds,
+           res_enrich = il8.topgo.res.sf.df.dds,
+           annotation_obj = il8.sf.df.annotation,
+           geneset_id = "GO:0098586",
+           cluster_columns = TRUE,
+           anno_col_info = "CAR",
+           scale_row = TRUE,
+           plot_title = "Cellular Response to Virus (GO:0098586)")
+
+```
+
+```{r save crtv heatmap}
+png(filename = "plots/il8/crtv_pathway_heatmap.png",
+    width = 8,
+    height = 6,
+    units = "in",
+    res = 600)
+
+crtv_heatmap
+
+dev.off()
+```
+
+## Positive Regulation of Myeloid Differentiation
+
+```{r prmld heatmap}
+prmld_heatmap <- gs_heatmap(se = vst(il8.sf.df.dds),
+           res_de = il8.res.sf.df.dds,
+           res_enrich = il8.topgo.res.sf.df.dds,
+           annotation_obj = il8.sf.df.annotation,
+           geneset_id = "GO:0002763",
+           cluster_columns = TRUE,
+           anno_col_info = "CAR",
+           scale_row = TRUE,
+           plot_title = "Positive Regulation of Myeloid Leukocyte Differentiation (GO:0002763)")
+```
+
+```{r save prmld heatmap}
+png(filename = "plots/il8/prmld_pathway_heatmap.png",
+    width = 8,
+    height = 6,
+    units = "in",
+    res = 600)
+
+prmld_heatmap
+
+dev.off()
+```
+
+
+# Further Pathway exploration
+
+```{r save all pathway analysis}
+write.csv(file = "genetonic_results/il8_GeneTonic_pathways.csv", il8.topgo.res.sf.df.dds,
+          row.names = FALSE)
+```
+
+
+## Telomerase pathways
+
+```{r telo df}
+telo.topgo.res.sf.df.dds <- il8.topgo.res.sf.df.dds |>
+    dplyr::filter(grepl("telomerase", gs_description))
+```
+
+```{r telomerase heatmap}
+telo_gss_mat <- gs_scores(se = vst(il8.sf.df.dds),
+                         res_de = il8.res.sf.df.dds,
+                         res_enrich = telo.topgo.res.sf.df.dds,
+                         annotation_obj = il8.sf.df.annotation)
+
+telo_gss_mat <- gs_scoresheat(telo_gss_mat, n_gs = 15)
+
+telo_gss_mat
+```
+
+```{r save telo heatmap}
+ggsave("plots/il8/telomerase_pathway_heatmap.png",
+       plot = telo_gss_mat,
+       device = "png",
+       width = 8,
+       height = 4,
+       units = "in")
+```
+
+## Metabolism pathways
+
+```{r metab df}
+metab.topgo.res.sf.df.dds <- il8.topgo.res.sf.df.dds |>
+    dplyr::filter(grepl("metab", gs_description))
+```
+
+```{r metabolic heatmap}
+metab_gss_mat <- gs_scores(se = vst(il8.sf.df.dds),
+                         res_de = il8.res.sf.df.dds,
+                         res_enrich = metab.topgo.res.sf.df.dds,
+                         annotation_obj = il8.sf.df.annotation)
+
+metab_gss_mat <- gs_scoresheat(metab_gss_mat, n_gs = 15)
+
+metab_gss_mat
+```
+
+```{r save metabolic heatmap}
+ggsave("plots/il8/metabolic_pathway_heatmap.png",
+       plot = metab_gss_mat,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in")
+```
+
+## Immune pathways
+
+```{r immune path df}
+immuno.topgo.res.sf.df.dds <- il8.topgo.res.sf.df.dds |>
+    dplyr::filter(grepl("immun", gs_description))
+```
+
+```{r immuno heatmap}
+immuno_gss_mat <- gs_scores(se = vst(il8.sf.df.dds),
+                         res_de = il8.res.sf.df.dds,
+                         res_enrich = immuno.topgo.res.sf.df.dds,
+                         annotation_obj = il8.sf.df.annotation)
+
+immuno_gss_mat <- gs_scoresheat(immuno_gss_mat, n_gs = 15)
+
+immuno_gss_mat
+```
+
+```{r save immuno heatmap}
+ggsave("plots/il8/immuno_pathway_heatmap.png",
+       plot = immuno_gss_mat,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+sessionInfo()
+```
