@@ -1,0 +1,165 @@
+---
+title: "GeneTonic bead stim exploration: B7C2 vs B7 CAR T cells"
+#output: html_notebook
+---
+
+# Load Libraries
+
+These libraries are required to perform this RNAseq analysis. Make sure you have install them before begin the analysis.
+
+```{r load libraries}
+suppressPackageStartupMessages({
+library(tidyverse)
+library(plotly)
+library(ggrepel)
+library(GeneTonic)
+library(ComplexHeatmap)
+library(DESeq2)
+})
+```
+
+# Load data
+
+Previously created in `2023_08_16_subset_analysis.`
+
+```{r load genetonic inputs}
+load("genetonic_results/bead_GeneTonic_inputs.Rdata")
+```
+
+# Run
+
+Now we can launch a GeneTonic browser to look at the data.
+
+```{r bead genetonic}
+GeneTonic(dds = bead.sf.df.dds,
+          res_de = bead.res.sf.df.dds,
+          res_enrich = bead.topgo.res.sf.df.dds,
+          annotation_obj = bead.sf.df.annotation,
+          project_id = "bead stim")
+```
+
+# Pathway overview graphs
+
+After exploring the data in GeneTonic, I want to save some of the plots. To do this, I can get example code to create the plot from the GeneTonic browser. I will copy/paste the code in here and change the relevant variable names.
+
+## Pathway heatmap
+
+```{r pathway heatmap}
+bead_gss_mat <- gs_scores(se = vst(bead.sf.df.dds),
+                         res_de = bead.res.sf.df.dds,
+                         res_enrich = bead.topgo.res.sf.df.dds,
+                         annotation_obj = bead.sf.df.annotation)
+
+bead_gss_plot <- gs_scoresheat(bead_gss_mat, n_gs = 15)
+
+bead_gss_plot
+```
+
+```{r save path heatmap}
+ggsave("plots/bead/bead_pathway_heatmap.png",
+       plot = bead_gss_plot,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in")
+```
+
+## Pathway by p value (z score)
+
+```{r pathway plot}
+bead_summary <- gs_summary_overview(res_enrich = bead.topgo.res.sf.df.dds, n_gs = 15)
+
+bead_summary
+```
+
+```{r save path plot}
+ggsave("plots/bead/bead_pathway_analysis.png",
+       plot = bead_summary,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in",
+       bg = "white")
+```
+
+# Individual pathway heatmaps
+
+Mike requested heatmaps for genes in specific pathways from the previous graphs. Here I will generate them.
+
+## Positive regulation of IL-12 production
+
+```{r il12 heatmap}
+_heatmap <- gs_heatmap(se = vst(bead.sf.df.dds),
+           res_de = bead.res.sf.df.dds,
+           res_enrich = bead.topgo.res.sf.df.dds,
+           annotation_obj = bead.sf.df.annotation,
+           geneset_id = "GO:XXXXXXXX",
+           cluster_columns = TRUE,
+           anno_col_info = "CAR",
+           scale_row = TRUE,
+           plot_title = "")
+```
+
+```{r save il-12 heatmap}
+png(filename = "plots/bead/_pathway_heatmap.png",
+    width = 8,
+    height = 6,
+    units = "in",
+    res = 600)
+
+
+
+dev.off()
+```
+
+
+
+
+# Further Pathway exploration
+
+```{r save all pathway analysis}
+write.csv(file = "genetonic_results/bead_GeneTonic_pathways.csv", bead.topgo.res.sf.df.dds,
+          row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+sessionInfo()
+```

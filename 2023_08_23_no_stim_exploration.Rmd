@@ -1,0 +1,183 @@
+---
+title: "GeneTonic no stim exploration: B7C2 vs B7 CAR T cells"
+#output: html_notebook
+---
+
+# Load Libraries
+
+These libraries are required to perform this RNAseq analysis. Make sure you have install them before begin the analysis.
+
+```{r load libraries}
+suppressPackageStartupMessages({
+library(tidyverse)
+library(plotly)
+library(ggrepel)
+library(GeneTonic)
+library(ComplexHeatmap)
+library(DESeq2)
+library(Enhanced)
+})
+```
+
+# Load data
+
+Previously created in `2023_08_16_subset_analysis.`
+
+```{r load genetonic inputs}
+load("genetonic_results/no_GeneTonic_inputs.Rdata")
+```
+
+# Run
+
+Now we can launch a GeneTonic browser to look at the data.
+
+```{r no genetonic}
+GeneTonic(dds = no.sf.df.dds,
+          res_de = no.res.sf.df.dds,
+          res_enrich = no.topgo.res.sf.df.dds,
+          annotation_obj = no.sf.df.annotation,
+          project_id = "no stim")
+```
+
+# Pathway overview graphs
+
+After exploring the data in GeneTonic, I want to save some of the plots. To do this, I can get example code to create the plot from the GeneTonic browser. I will copy/paste the code in here and change the relevant variable names.
+
+## Pathway heatmap
+
+```{r pathway heatmap}
+no_gss_mat <- gs_scores(se = vst(no.sf.df.dds),
+                         res_de = no.res.sf.df.dds,
+                         res_enrich = no.topgo.res.sf.df.dds,
+                         annotation_obj = no.sf.df.annotation)
+
+no_gss_plot <- gs_scoresheat(no_gss_mat, n_gs = 15)
+
+no_gss_plot
+```
+
+```{r save path heatmap}
+ggsave("plots/no_stim/no_pathway_heatmap.png",
+       plot = no_gss_plot,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in")
+```
+
+## Pathway by p value (z score)
+
+```{r pathway plot}
+no_summary <- gs_summary_overview(res_enrich = no.topgo.res.sf.df.dds, n_gs = 15)
+
+no_summary
+```
+
+```{r save path plot}
+ggsave("plots/no_stim/no_pathway_analysis.png",
+       plot = no_summary,
+       device = "png",
+       width = 8,
+       height = 6,
+       units = "in",
+       bg = "white")
+```
+
+# Individual pathway heatmaps
+
+Mike requested heatmaps for genes in specific pathways from the previous graphs. Here I will generate them.
+
+## 
+
+```{r }
+_heatmap <- gs_heatmap(se = vst(no.sf.df.dds),
+           res_de = no.res.sf.df.dds,
+           res_enrich = no.topgo.res.sf.df.dds,
+           annotation_obj = no.sf.df.annotation,
+           geneset_id = "GO:XXXXXXXX",
+           cluster_columns = TRUE,
+           anno_col_info = "CAR",
+           scale_row = TRUE,
+           plot_title = "")
+```
+
+```{r }
+png(filename = "plots/no_stim/_pathway_heatmap.png",
+    width = 8,
+    height = 6,
+    units = "in",
+    res = 600)
+
+
+
+dev.off()
+```
+
+
+
+
+# Further Pathway exploration
+
+```{r save all pathway analysis}
+write.csv(file = "genetonic_results/no_stim_GeneTonic_pathways.csv", no.topgo.res.sf.df.dds,
+          row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+```{r}
+BiocManager::install("EnhancedVolcano")
+
+library(EnhancedVolcano)
+```
+
+
+```{r}
+EnhancedVolcano(no.res.sf.df.dds@listData,
+                lab = no.sf.df.annotation,
+                x = no.res.sf.df.dds@listData$log2FoldChange,
+                y = no.res.sf.df.dds@listData$pvalue,
+                pCutoff = 0.05,
+                FCcutoff = 1.33)
+
+dds <- DESeq(no.sf.df.dds)
+
+no_volcano <- results(dds)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+sessionInfo()
+```
