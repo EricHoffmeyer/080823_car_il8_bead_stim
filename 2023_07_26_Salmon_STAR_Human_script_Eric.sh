@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 INVESTIGATOR=verneris
-PROJECT=230623_Jessica_B7H3_bead_stim
+PROJECT=2023_06_23_Jessica_B7H3_bead_stim
 
 RAN_ON=$(date +%Y_%m_%d)
 NUMBER=0

@@ -4,9 +4,9 @@ RAN_ON=$(date +%Y_%m_%d_%H_%M_%S)
 NUMBER=0
 
 INVESTIGATOR=verneris
-PROJECT=230623_Jessica_B7H3_bead_stim
+PROJECT=2023_06_23_Jessica_B7H3_bead_stim
 
-RNASEQ=/beevol/home/hoffmeye/documents/rna_seq_data
+RNASEQ=/beevol/home/hoffmeye/documents/bulk_RNAseq
 DATA=$RNASEQ/${INVESTIGATOR}/$PROJECT
 SCRIPTS=$DATA/scripts
 FASTQ=$DATA/fastq_files
