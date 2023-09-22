@@ -104,7 +104,7 @@ We previously created the gtf, lookup table, and data matrix made from the salmo
 ## Load the saved copy
 
 ```{r load sf.df}
-load(file = "sf.df.Rdata")
+load(file = "data/sf.df.Rdata")
 ```
 
 ## Define subsets
@@ -141,25 +141,25 @@ il8.sf.df.data <- sf.df %>%
   dplyr::select(all_of(il8.subset.samples)) %>%
   drop_na() %>% 
   ## Filter low expressors (<10)
-  mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
+  mutate(Rowsum = apply(., 1, function(x) sum(x >= 5))) %>% 
   dplyr::filter(Rowsum == dim(il8.data.dictionary)[1]) %>% 
-  ## bead longer need the column "Rowsum", we can remove it
+  ## no longer need the column "Rowsum", we can remove it
   dplyr::select(-Rowsum)
 
 bead.sf.df.data <- sf.df %>%
   dplyr::select(all_of(bead.subset.samples)) %>%
   drop_na() %>% 
   ## Filter low expressors (<10)
-  mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
+  mutate(Rowsum = apply(., 1, function(x) sum(x >= 5))) %>% 
   dplyr::filter(Rowsum == dim(bead.data.dictionary)[1]) %>% 
-  ## bead longer need the column "Rowsum", we can remove it
+  ## no longer need the column "Rowsum", we can remove it
   dplyr::select(-Rowsum)
 
 no.sf.df.data <- sf.df %>%
   dplyr::select(all_of(no.subset.samples)) %>%
   drop_na() %>% 
   ## Filter low expressors (<10)
-  mutate(Rowsum = apply(., 1, function(x) sum(x > 10))) %>% 
+  mutate(Rowsum = apply(., 1, function(x) sum(x >= 5))) %>% 
   dplyr::filter(Rowsum == dim(no.data.dictionary)[1]) %>% 
   ## no longer need the column "Rowsum", we can remove it
   dplyr::select(-Rowsum)
