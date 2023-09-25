@@ -18,20 +18,19 @@ knitr::opts_chunk$set(echo = TRUE)
 These libraries are required to perform this RNAseq analysis. Make sure you have install them before begin the analysis.
 
 ```{r}
-## Use install.packages() to install these packages:
+suppressPackageStartupMessages({
 library(tidyverse)
 library(tidybulk)
 library(janitor)
 library(plotly)
 library(ggrepel)
-## Use BiocManager::install() to install these packages:
 library(DESeq2)
 library(GeneTonic)
 library(pcaExplorer)
 library(AnnotationDbi)
 library(org.Hs.eg.db)
 library(topGO)
-
+})
 ```
 
 # Data Dictionary
@@ -124,7 +123,7 @@ Our goal is to sum up all counts of a gene (represented by gene ID) from all its
 
 ```{r}
 # Load this below
-gtf = rtracklayer::import("Homo_sapiens.GRCh38.106.gtf")
+gtf = rtracklayer::import("data/Homo_sapiens.GRCh38.106.gtf")
 ## Transform into data frame for easy wrangling
 gtf_df = as.data.frame(gtf)
 gtf_df
@@ -133,13 +132,13 @@ gtf_df
 ### Save `gtf`
 
 ```{r}
-save(gtf_df, file = "gtf_df.Rdata")
+save(gtf_df, file = "data/gtf_df.Rdata")
 ```
 
 ## Load the saved copy
 
 ```{r}
-load(file = "gtf_df.Rdata")
+load(file = "data/gtf_df.Rdata")
 ```
 
 ## Look up table
@@ -212,11 +211,11 @@ sf.df
 Save a copy of the Salmon dataset so you don't have to reimport all the files everytimes:
 
 ```{r}
-save(sf.df, file = "sf.df.Rdata")
+save(sf.df, file = "data/sf.df.Rdata")
 ```
 
 ```{r}
-load(file = "sf.df.Rdata")
+load(file = "data/sf.df.Rdata")
 ```
 
 # Define subset
@@ -231,20 +230,12 @@ Data.dictionary$col.name
 
 ```{r}
 subset.samples = Data.dictionary$col.name
-
 ```
 
 ## Remove Outlier
 
 ```{r}
-subset.samples = c(
-  "697_C_CAR_Rep2",  
-  "697_C_CAR_Rep3",  
-  "697_C_CAR_Rep4",  
-  "697_C_mock_rep2",
-  "697_C_mock_rep3", 
-  "697_C_mock_rep4"
-)
+#subset.samples = 
 ```
 
 ## (Re)define meta data
@@ -258,8 +249,8 @@ Data.dictionary %>%
 
 ```{r}
 sf.df.data = sf.df %>%
-  ## Select or seubset the desired samples 
-  dplyr::select(subset.samples) %>%
+  ## Select or subset the desired samples 
+  #dplyr::select(subset.samples) %>%
   ## Remove all NA (if any)
   drop_na() %>% 
   ## Filter low expressors
@@ -273,6 +264,10 @@ sf.df.data
 ```
 
 # DESeq Object
+
+```{r}
+class(sf.df.data)
+```
 
 ## Create SummarizeExperiment Object
 

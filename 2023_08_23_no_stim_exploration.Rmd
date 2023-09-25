@@ -15,7 +15,7 @@ library(ggrepel)
 library(GeneTonic)
 library(ComplexHeatmap)
 library(DESeq2)
-library(Enhanced)
+library(EnhancedVolcano)
 })
 ```
 
@@ -65,7 +65,7 @@ ggsave("plots/no_stim/no_pathway_heatmap.png",
        units = "in")
 ```
 
-## Pathway by p value (z score)
+## Pathway by p value (and z score)
 
 ```{r pathway plot}
 no_summary <- gs_summary_overview(res_enrich = no.topgo.res.sf.df.dds, n_gs = 15)
@@ -83,14 +83,18 @@ ggsave("plots/no_stim/no_pathway_analysis.png",
        bg = "white")
 ```
 
+
+
+
+
+
 # Individual pathway heatmaps
 
-Mike requested heatmaps for genes in specific pathways from the previous graphs. Here I will generate them.
 
 ## 
 
 ```{r }
-_heatmap <- gs_heatmap(se = vst(no.sf.df.dds),
+XXXX_heatmap <- gs_heatmap(se = vst(no.sf.df.dds),
            res_de = no.res.sf.df.dds,
            res_enrich = no.topgo.res.sf.df.dds,
            annotation_obj = no.sf.df.annotation,
@@ -102,7 +106,7 @@ _heatmap <- gs_heatmap(se = vst(no.sf.df.dds),
 ```
 
 ```{r }
-png(filename = "plots/no_stim/_pathway_heatmap.png",
+png(filename = "plots/no_stim/XXXXX_pathway_heatmap.png",
     width = 8,
     height = 6,
     units = "in",
@@ -127,14 +131,6 @@ write.csv(file = "genetonic_results/no_stim_GeneTonic_pathways.csv", no.topgo.re
 
 
 
-
-
-
-```{r}
-BiocManager::install("EnhancedVolcano")
-
-library(EnhancedVolcano)
-```
 
 
 ```{r}

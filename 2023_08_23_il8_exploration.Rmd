@@ -64,7 +64,7 @@ ggsave("plots/il8/il8_pathway_heatmap.png",
        units = "in")
 ```
 
-## Pathway by p value (z score)
+## Pathway by p value (and z score)
 
 ```{r pathway plot}
 il8_summary <- gs_summary_overview(res_enrich = il8.topgo.res.sf.df.dds, n_gs = 15)
@@ -282,9 +282,27 @@ ggsave("plots/il8/immuno_pathway_heatmap.png",
 ```
 
 
+```{r}
+rm(il8.deseq.genes)
+```
 
 
+```{r}
+EnhancedVolcano(toptable = il8.res.sf.df.dds,
+                lab = rownames(il8.res.sf.df.dds),
+                x = "log2FoldChange",
+                y = "padj",
+                xlim =  c(-5, 5),
+                ylim = c(-0.5, 25),
+                title = "BC2 vs B7 CAR T cells: IL8+CAR stim",
+                subtitle = "DESeq2 Results",
+                FCcutoff = 0.5
+                )
+```
 
+```{r}
+?EnhancedVolcano
+```
 
 
 

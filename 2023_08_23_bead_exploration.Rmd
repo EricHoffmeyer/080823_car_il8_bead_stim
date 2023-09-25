@@ -64,7 +64,7 @@ ggsave("plots/bead/bead_pathway_heatmap.png",
        units = "in")
 ```
 
-## Pathway by p value (z score)
+## Pathway by p value (and z score)
 
 ```{r pathway plot}
 bead_summary <- gs_summary_overview(res_enrich = bead.topgo.res.sf.df.dds, n_gs = 15)
@@ -86,9 +86,9 @@ ggsave("plots/bead/bead_pathway_analysis.png",
 
 Mike requested heatmaps for genes in specific pathways from the previous graphs. Here I will generate them.
 
-## Positive regulation of IL-12 production
+## Placeholder
 
-```{r il12 heatmap}
+```{r heatmap}
 _heatmap <- gs_heatmap(se = vst(bead.sf.df.dds),
            res_de = bead.res.sf.df.dds,
            res_enrich = bead.topgo.res.sf.df.dds,
@@ -100,7 +100,7 @@ _heatmap <- gs_heatmap(se = vst(bead.sf.df.dds),
            plot_title = "")
 ```
 
-```{r save il-12 heatmap}
+```{r save heatmap}
 png(filename = "plots/bead/_pathway_heatmap.png",
     width = 8,
     height = 6,
@@ -121,35 +121,6 @@ dev.off()
 write.csv(file = "genetonic_results/bead_GeneTonic_pathways.csv", bead.topgo.res.sf.df.dds,
           row.names = FALSE)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
