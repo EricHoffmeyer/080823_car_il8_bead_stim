@@ -1,0 +1,212 @@
+---
+title: "2023_10_09_final_figures"
+author: "Eric Hoffmeyer"
+date: "2023-10-09"
+output: html_document
+---
+
+Customizing figures for final submission
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries
+
+```{r}
+suppressPackageStartupMessages({
+library(tidyverse)
+library(plotly)
+library(ggrepel)
+library(GeneTonic)
+library(ComplexHeatmap)
+library(DESeq2)
+library(pheatmap)
+})
+```
+
+# Read in data
+
+```{r load genetonic inputs}
+load("genetonic_results/il8_GeneTonic_inputs.Rdata")
+de_genes <- read.csv(file = "deseq_results/il8_DESeq2_analysis.csv")
+```
+
+```{r dir folders}
+folder.name <- "Analysis_2023_10_09"
+
+if(!exists(folder.name)){
+  dir.create(folder.name)
+}
+```
+
+
+# Pathway Summary Plot
+
+```{r pathway plot}
+il8_summary <- gs_summary_overview(res_enrich = il8.topgo.res.sf.df.dds, n_gs = 15)
+
+il8_summary +
+  labs(title = "Pathway Enrichment",
+       subtitle = "B7H3-CXCR2 CAR vs B7H3 CAR")
+```
+
+
+# Innate Immune Response: gene heatmap
+
+```{r IIR heatmap}
+iir_heatmap <- gs_heatmap(se = vst(il8.sf.df.dds),
+           res_de = il8.res.sf.df.dds,
+           res_enrich = il8.topgo.res.sf.df.dds,
+           annotation_obj = il8.sf.df.annotation,
+           geneset_id = "GO:0045087",
+           cluster_columns = TRUE,
+           anno_col_info = "CAR",
+           scale_row = TRUE,
+           plot_title = "Innate Immune Response (GO:0045087)")
+
+#remove labels at bottom
+# change color of CAR labels- orange for BC2, blue for B7
+#Move B7 samples to left side of plot
+# what p cutoff value was used
+```
+
+I can't quite figure out how to make changes to this gs_heatmap object. It may be easier to use the raw data and make a pHeatmap. First, let me extract the genes of interest for the innate immune response pathway from this gs_heatmap object
+
+```{r}
+iir_gene_list <- il8_summary$data[[12,4]] |> 
+  strsplit(split = ",")
+
+iir_gene_list <- iir_gene_list[[1]]
+```
+
+Now to read in the DESeq results
+
+```{r}
+de_genes <- read.csv(file = "deseq_results/il8_DESeq2_analysis.csv")
+```
+
+Isolate the counts from just the significant genes in the innate immune response list.
+
+```{r}
+iir_matrix <- de_genes |> 
+  na.omit() |> 
+  filter(padj <= 0.05) |>
+  filter(gene_symbol %in% iir_gene_list) |> 
+  column_to_rownames(var = "gene_symbol") |> 
+  dplyr::select(contains("B7"))
+```
+
+Preparing the annotation names and colors here
+
+```{r}
+b7c2_samples <- c("D1_B7C2_Il8", "D2_B7C2_Il8", "D3_B7C2_Il8")
+
+anno <- data.frame(sample_name = colnames(iir_matrix)) |> 
+  mutate(CAR = if_else(sample_name %in% b7c2_samples, "B7H3-CXCR2", "B7H3")) |> 
+  column_to_rownames("sample_name")
+
+CAR <- c("#FFCC00", "blue")
+names(CAR) <- c("B7H3", "B7H3-CXCR2")
+anno_colors <- list(CAR = CAR)
+```
+
+Make heatmap
+
+```{r}
+p <- pheatmap(iir_matrix, 
+         scale = "row",
+         show_colnames = FALSE,
+         treeheight_col = 0,
+         annotation = anno,
+         annotation_colors = anno_colors,
+         main = "Innate Immune Response (GO:0045087)")
+```
+
+Save heatmap
+
+```{r}
+ggsave(filename = paste0(folder.name, "/innate_immune_response_heatmap.png"),
+       plot = p,
+       width = 7,
+       height = 9,
+       units = "in")
+```
+
+
+# Heatmap for top 25 overall DESeq2 genes
+
+Jessica asked for the "top 25" genes. We will do two heatmaps. One by adjusted p value and another by log2FC (and still p < 0.05).
+The DESeq gene list is already sorted by adjusted p value, so we can start there. I'm boosting the gene level to 26 since we artifically increased CXCR2 expression.
+
+```{r}
+top_25_padj <- de_genes |> 
+  na.omit() |> 
+  dplyr::slice(1:26) |> 
+  column_to_rownames(var = "gene_symbol") |> 
+  dplyr::select(contains("B7"))
+  
+```
+
+
+```{r}
+top_25_log2 <- de_genes |> 
+  na.omit() |> 
+  filter(padj <= 0.05) |> 
+  arrange(desc(log2FoldChange)) |> 
+  column_to_rownames(var = "gene_symbol") |> 
+  dplyr::select(contains("B7")) |> 
+  dplyr::slice(1:26)
+```
+
+Top 25 DESeq genes by adjusted p value heatmap
+
+```{r}
+q <- pheatmap(top_25_padj,
+         scale = "row",
+         show_colnames = FALSE,
+         treeheight_col = 0,
+         annotation = anno,
+         annotation_colors = anno_colors,
+         main = "Top 26 genes by adjusted p value: CAR+IL8 stim")
+ggsave(filename = paste0(folder.name, "/top_25_padj_heatmap.png"),
+       plot = q,
+       width = 7,
+       height = 9,
+       units = "in")
+```
+
+Top 25 DESeq genes by fold change.
+
+```{r}
+r <- pheatmap(top_25_log2,
+         scale = "row",
+         show_colnames = FALSE,
+         treeheight_col = 0,
+         annotation = anno,
+         annotation_colors = anno_colors,
+         main = "Top 26 genes by log2FC value: CAR+IL8 stim")
+ggsave(filename = paste0(folder.name, "/top_25_log2FC_heatmap.png"),
+       plot = r,
+       width = 7,
+       height = 9,
+       units = "in")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
