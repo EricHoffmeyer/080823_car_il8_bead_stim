@@ -40,17 +40,28 @@ if(!exists(folder.name)){
 }
 ```
 
-
 # Pathway Summary Plot
 
 ```{r pathway plot}
-il8_summary <- gs_summary_overview(res_enrich = il8.topgo.res.sf.df.dds, n_gs = 15)
+il8_summary <- gs_summary_overview(res_enrich = il8.topgo.res.sf.df.dds, 
+                                   n_gs = 15,
+                                   )
 
-il8_summary +
+o <- il8_summary +
   labs(title = "Pathway Enrichment",
        subtitle = "B7H3-CXCR2 CAR vs B7H3 CAR")
+o
 ```
 
+
+```{r}
+ggsave(filename = paste0(folder.name, "/pathway_enrichment_gene_sets.png"),
+       plot = o,
+       width = 11,
+       height = 8,
+       units = "in",
+       bg = "white")
+```
 
 # Innate Immune Response: gene heatmap
 
@@ -71,19 +82,15 @@ iir_heatmap <- gs_heatmap(se = vst(il8.sf.df.dds),
 # what p cutoff value was used
 ```
 
-I can't quite figure out how to make changes to this gs_heatmap object. It may be easier to use the raw data and make a pHeatmap. First, let me extract the genes of interest for the innate immune response pathway from this gs_heatmap object
+I can't quite figure out how to make changes to this gs_heatmap object. It may be easier to use the raw data and make a pHeatmap. 
+
+First, let me extract the genes of interest for the innate immune response pathway from this gs_heatmap object
 
 ```{r}
 iir_gene_list <- il8_summary$data[[12,4]] |> 
   strsplit(split = ",")
 
 iir_gene_list <- iir_gene_list[[1]]
-```
-
-Now to read in the DESeq results
-
-```{r}
-de_genes <- read.csv(file = "deseq_results/il8_DESeq2_analysis.csv")
 ```
 
 Isolate the counts from just the significant genes in the innate immune response list.
@@ -97,7 +104,7 @@ iir_matrix <- de_genes |>
   dplyr::select(contains("B7"))
 ```
 
-Preparing the annotation names and colors here
+Preparing the annotation names and colors here. Jessica's other graphpad figures have B7H3 in orange and B7H3-CXCR2 as blue, so I will assign those to keep the color scheme consistent.
 
 ```{r}
 b7c2_samples <- c("D1_B7C2_Il8", "D2_B7C2_Il8", "D3_B7C2_Il8")
