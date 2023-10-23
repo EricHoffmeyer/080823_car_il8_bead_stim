@@ -22,6 +22,7 @@ library(GeneTonic)
 library(ComplexHeatmap)
 library(DESeq2)
 library(pheatmap)
+library(EnhancedVolcano)
 })
 ```
 
@@ -49,7 +50,11 @@ il8_summary <- gs_summary_overview(res_enrich = il8.topgo.res.sf.df.dds,
 
 o <- il8_summary +
   labs(title = "Pathway Enrichment",
-       subtitle = "B7H3-CXCR2 CAR vs B7H3 CAR")
+       subtitle = "B7H3-CXCR2 CAR vs B7H3 CAR") +
+  theme(text = element_text(size = 15, face = "bold"),
+        title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 15, face = "bold"),
+        axis.title.y = element_text(size = 15, face = "bold"))
 o
 ```
 
@@ -123,6 +128,8 @@ Make heatmap
 ```{r}
 p <- pheatmap(iir_matrix, 
          scale = "row",
+         fontsize = 12,
+         fontsize_row = 15,
          show_colnames = FALSE,
          treeheight_col = 0,
          annotation = anno,
@@ -133,7 +140,7 @@ p <- pheatmap(iir_matrix,
 Save heatmap
 
 ```{r}
-ggsave(filename = paste0(folder.name, "/innate_immune_response_heatmap.png"),
+ggsave(filename = paste0(folder.name, "/innate_immune_response_heatmap_row15.png"),
        plot = p,
        width = 7,
        height = 9,
@@ -176,6 +183,7 @@ q <- pheatmap(top_25_padj,
          annotation = anno,
          annotation_colors = anno_colors,
          main = "Top 26 genes by adjusted p value: CAR+IL8 stim")
+
 ggsave(filename = paste0(folder.name, "/top_25_padj_heatmap.png"),
        plot = q,
        width = 7,
@@ -200,10 +208,40 @@ ggsave(filename = paste0(folder.name, "/top_25_log2FC_heatmap.png"),
        units = "in")
 ```
 
+# Volcano plots for DE genes.
+
+```{r}
+v <- EnhancedVolcano(toptable = de_genes,
+                lab = de_genes$gene_symbol,
+                x = "log2FoldChange",
+                y = "padj",
+                xlim =  c(-3, 3),
+                ylim = c(-0.5, 8),
+                title = "B7H3-CXCR2 vs B7H3 CAR T cells",
+                subtitle = "IL8 + CAR stim condition",
+                FCcutoff = 0.25,
+                pCutoff = 0.01,
+                legendPosition = "none",
+                labFace = "bold",
+                caption = ""
+                )
+v
+```
+
+```{r}
+ggsave(filename = paste0(folder.name, "/volcano_plot.png"),
+       plot = v,
+       width = 7,
+       height = 6,
+       units = "in",
+       dpi = 700
+       )
+```
 
 
-
-
+```{r}
+?ggsave
+```
 
 
 
