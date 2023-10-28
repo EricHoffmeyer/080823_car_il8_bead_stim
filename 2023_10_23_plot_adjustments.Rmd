@@ -1,0 +1,122 @@
+---
+title: "2023_10_23 Plot adjustments"
+#output: html_notebook
+---
+
+Use in conjuction with the first section of 2023_10_09_final_figures.Rmd
+
+```{r}
+o <- il8_summary +
+  labs(title = "Pathway Enrichment",
+       subtitle = "B7H3-CXCR2 CAR vs B7H3 CAR") +
+  theme(text = element_text(size = 15, face = "bold"),
+        title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 15, face = "bold"),
+        axis.title.y = element_text(size = 15, face = "bold"))
+o
+```
+
+```{r}
+?theme()
+?element_text
+?labs()
+?gs_summary_overview
+?pheatmap
+```
+
+```{r}
+q <- pheatmap(top_25_padj,
+         scale = "row",
+         show_colnames = FALSE,
+         treeheight_col = 0,
+         annotation = anno,
+         annotation_colors = anno_colors,
+         main = "Top 26 genes by adjusted p value: CAR+IL8 stim")
+```
+
+
+```{r}
+q <- pheatmap(top_25_padj,
+         scale = "row",
+         fontsize = 11,
+         fontsize_row = 15,
+         show_colnames = FALSE,
+         treeheight_col = 0,
+         annotation = anno,
+         annotation_colors = anno_colors,
+         main = "Top 26 genes by adjusted p value: CAR+IL8 stim")
+```
+
+
+
+
+```{r}
+ggsave(filename = paste0(folder.name, "/top_25_padj_heatmap_bigger.png"),
+       plot = q,
+       width = 7,
+       height = 9,
+       units = "in")
+```
+
+
+```{r}
+r <- pheatmap(top_25_log2,
+         scale = "row",
+         show_colnames = FALSE,
+         treeheight_col = 0,
+         annotation = anno,
+         annotation_colors = anno_colors,
+         main = "Top 26 genes by log2FC value: CAR+IL8 stim")
+```
+
+```{r}
+r <- pheatmap(top_25_log2,
+         scale = "row",
+         fontsize = 12,
+         fontsize_row = 15,
+         show_colnames = FALSE,
+         treeheight_col = 0,
+         annotation = anno,
+         annotation_colors = anno_colors,
+         main = "Top 26 genes by log2FC value: CAR+IL8 stim")
+```
+
+```{r}
+ggsave(filename = paste0(folder.name, "/top_25_log2FC_heatmap_bigger.png"),
+       plot = r,
+       width = 7,
+       height = 9,
+       units = "in")
+```
+
+```{r}
+temp <- de_genes |> 
+  na.omit() |> 
+  filter(padj <= 0.05) |> 
+  arrange(desc(log2FoldChange)) |> 
+  column_to_rownames(var = "gene_symbol")
+write.csv(temp, file = paste0(folder.name, "/top_25_log2FC_genelist.csv"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
