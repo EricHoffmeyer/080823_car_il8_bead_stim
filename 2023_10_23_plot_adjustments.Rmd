@@ -31,7 +31,7 @@ q <- pheatmap(top_25_padj,
          treeheight_col = 0,
          annotation = anno,
          annotation_colors = anno_colors,
-         main = "Top 26 genes by adjusted p value: CAR+IL8 stim")
+         main = "Top 25 genes by adjusted p value: IL8 stim")
 ```
 
 
@@ -44,7 +44,7 @@ q <- pheatmap(top_25_padj,
          treeheight_col = 0,
          annotation = anno,
          annotation_colors = anno_colors,
-         main = "Top 26 genes by adjusted p value: CAR+IL8 stim")
+         main = "Top 25 genes by adjusted p value: IL8 stim")
 ```
 
 
@@ -66,7 +66,7 @@ r <- pheatmap(top_25_log2,
          treeheight_col = 0,
          annotation = anno,
          annotation_colors = anno_colors,
-         main = "Top 26 genes by log2FC value: CAR+IL8 stim")
+         main = "Top 26 genes by log2FC value: IL8 stim")
 ```
 
 ```{r}
@@ -78,7 +78,7 @@ r <- pheatmap(top_25_log2,
          treeheight_col = 0,
          annotation = anno,
          annotation_colors = anno_colors,
-         main = "Top 26 genes by log2FC value: CAR+IL8 stim")
+         main = "Top 26 genes by log2FC value: IL8 stim")
 ```
 
 ```{r}

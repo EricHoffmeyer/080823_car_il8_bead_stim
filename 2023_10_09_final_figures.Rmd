@@ -22,6 +22,7 @@ library(ComplexHeatmap)
 library(DESeq2)
 library(pheatmap)
 library(EnhancedVolcano)
+library(tibble)
 })
 ```
 
@@ -155,18 +156,17 @@ The DESeq gene list is already sorted by adjusted p value, so we can start there
 ```{r}
 top_25_padj <- de_genes |> 
   na.omit() |> 
-  dplyr::slice(1:26) |> 
+  dplyr::slice(1:25) |> 
   column_to_rownames(var = "gene_symbol") |> 
   dplyr::select(contains("B7"))
   
 ```
 
-
 ```{r}
 top_25_log2 <- de_genes |> 
   na.omit() |> 
   filter(padj <= 0.05) |> 
-  arrange(desc(log2FoldChange)) |> 
+  arrange(desc(abs(c(log2FoldChange)))) |> 
   column_to_rownames(var = "gene_symbol") |> 
   dplyr::select(contains("B7")) |> 
   dplyr::slice(1:25)
@@ -181,13 +181,20 @@ q <- pheatmap(top_25_padj,
          treeheight_col = 0,
          annotation = anno,
          annotation_colors = anno_colors,
-         main = "Top 26 genes by adjusted p value: CAR+IL8 stim")
+         main = "Top 25 genes by adjusted p value: IL8 stim")
 
-ggsave(filename = paste0(folder.name, "/top_25_padj_heatmap.png"),
+# ggsave(filename = paste0(folder.name, "/top_25_padj_heatmap.png"),
+#        plot = q,
+#        width = 7,
+#        height = 9,
+#        units = "in")
+
+ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_condition_top25_padj_heatmap.png"),
        plot = q,
        width = 7,
        height = 9,
        units = "in")
+
 ```
 
 Top 25 DESeq genes by fold change.
@@ -201,8 +208,14 @@ r <- pheatmap(top_25_log2,
          treeheight_col = 0,
          annotation = anno,
          annotation_colors = anno_colors,
-         main = "Top 25 genes by log2FC value: CAR+IL8 stim")
-ggsave(filename = paste0(folder.name, "/top_25_log2FC_heatmap.png"),
+         main = "Top 25 genes by log2FC value: IL8 stim")
+# ggsave(filename = paste0(folder.name, "/top_25_log2FC_heatmap.png"),
+#        plot = r,
+#        width = 7,
+#        height = 9,
+#        units = "in")
+
+ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_condition_top25_log2FC_heatmap.png"),
        plot = r,
        width = 7,
        height = 9,
@@ -219,7 +232,7 @@ v <- EnhancedVolcano(toptable = de_genes,
                 xlim =  c(-3, 3),
                 ylim = c(-0.5, 8),
                 title = "B7H3-CXCR2 vs B7H3 CAR T cells",
-                subtitle = "IL8 + CAR stim condition",
+                subtitle = "IL8 stim condition",
                 FCcutoff = 0.25,
                 pCutoff = 0.01,
                 legendPosition = "none",
@@ -230,7 +243,7 @@ v
 ```
 
 ```{r}
-ggsave(filename = paste0(folder.name, "/BC_vs_B7_IL8_condtion_volcano_plot.png"),
+ggsave(filename = paste0(folder.name, "/BC_vs_B7_IL8_condition_volcano_plot.png"),
        plot = v,
        width = 7,
        height = 6,
@@ -269,7 +282,7 @@ de_genes current lists the DESeq2 results for BC Il8 vs B7 IL8. Make a subset of
 top_25_volcano <- de_genes |> 
   na.omit() |> 
   filter(padj <= 0.05) |> 
-  arrange(desc(log2FoldChange)) |> 
+  arrange(desc(abs(c(log2FoldChange)))) |> 
   column_to_rownames(var = "gene_symbol") |> 
   dplyr::slice(1:25)
 ```
@@ -279,10 +292,10 @@ s <- EnhancedVolcano(toptable = top_25_volcano,
                 lab = rownames(top_25_volcano),
                 x = "log2FoldChange",
                 y = "padj",
-                xlim =  c(-1, 3),
+                xlim =  c(-3, 3),
                 ylim = c(-0.5, 8),
                 title = "B7H3-CXCR2 vs B7H3 CAR T cells",
-                subtitle = "IL8 + CAR stim condition",
+                subtitle = "IL8 stim condition",
                 FCcutoff = 0.5,
                 pCutoff = 0.05,
                 legendPosition = "none",
@@ -295,7 +308,7 @@ s
 ```
 
 ```{r}
-ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_condtion_volcano_plot_no_connectors.png"),
+ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_condition_top25_log2FC_volcano_plot.png"),
        plot = s,
        width = 7,
        height = 6,
@@ -320,7 +333,7 @@ Make variables of top 25 genes by padj and log2FC:
 no_stim_t25_log2 <- no_stim_de_genes |> 
   na.omit() |> 
   filter(padj <= 0.05) |> 
-  arrange(desc(log2FoldChange)) |> 
+  arrange(desc(abs(c(log2FoldChange)))) |> 
   column_to_rownames(var = "gene_symbol") |> 
   dplyr::slice(1:25)
 
@@ -332,18 +345,64 @@ no_stim_t25_padj <- no_stim_de_genes |>
   column_to_rownames(var = "gene_symbol")
 ```
 
+### Heatmaps
+
+Make annotation tables first
+
 ```{r}
-b7c2_samples <- c("D1_B7C2_no", "D2_B7C2_no", "D3_B7C2_no")
+no_b7c2_samples <- c("D1_B7C2_no", "D2_B7C2_no", "D3_B7C2_no")
+
+no_matrix_log2 <- no_stim_t25_log2 |> 
+  dplyr::select(contains("B7"))
+
+no_anno <- data.frame(sample_name = colnames(no_matrix_log2)) |> 
+  mutate(CAR = if_else(sample_name %in% no_b7c2_samples, "B7H3-CXCR2", "B7H3")) |> 
+  column_to_rownames("sample_name")
+
+CAR <- c("#FFCC00", "blue")
+names(CAR) <- c("B7H3", "B7H3-CXCR2")
+anno_colors <- list(CAR = CAR)
 ```
+
 ```{r}
-t <- EnhancedVolcano(toptable = top_25_volcano,
-                lab = rownames(top_25_volcano),
+r <- pheatmap(no_matrix_log2,
+         scale = "row",
+         fontsize = 11,
+         fontsize_row = 15,
+         show_colnames = FALSE,
+         treeheight_col = 0,
+         annotation = no_anno,
+         annotation_colors = anno_colors,
+         main = "Top 25 genes by log2FC value: no stim")
+ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_condition_heatmap_top25_log2FC.png"),
+       plot = r,
+       width = 7,
+       height = 9,
+       units = "in")
+```
+
+
+
+
+
+
+
+
+
+
+
+### Volcano plots
+In case she asks for them later
+
+```{r}
+t <- EnhancedVolcano(toptable = no_stim_t25_log2,
+                lab = rownames(no_stim_t25_log2),
                 x = "log2FoldChange",
                 y = "padj",
-                xlim =  c(-1, 3),
-                ylim = c(-0.5, 8),
+                # xlim =  c(-1, 3),
+                # ylim = c(-0.5, 8),
                 title = "B7H3-CXCR2 vs B7H3 CAR T cells",
-                subtitle = "IL8 + CAR stim condition",
+                subtitle = "no stim condition",
                 FCcutoff = 0.5,
                 pCutoff = 0.05,
                 legendPosition = "none",
@@ -353,7 +412,51 @@ t <- EnhancedVolcano(toptable = top_25_volcano,
                 #drawConnectors = T
                 ) 
 t
+
+u <- EnhancedVolcano(toptable = no_stim_t25_padj,
+                lab = rownames(no_stim_t25_padj),
+                x = "log2FoldChange",
+                y = "padj",
+                # xlim =  c(-3, 3),
+                # ylim = c(-0.5, 8),
+                title = "B7H3-CXCR2 vs B7H3 CAR T cells",
+                subtitle = "no stim condition",
+                FCcutoff = 0.5,
+                pCutoff = 0.05,
+                legendPosition = "none",
+                #labFace = "bold",
+                caption = ""
+                )
+u
 ```
+
+```{r}
+ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_condition_volcano_plot_top25_log2FC.png"),
+       plot = t,
+       width = 7,
+       height = 6,
+       units = "in",
+       dpi = 700
+       )
+
+ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_condition_volcano_plot_top25_padj.png"),
+       plot = u,
+       width = 7,
+       height = 6,
+       units = "in",
+       dpi = 700
+       )
+```
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -367,7 +470,7 @@ t
 
 ## Top 25 genes, by log2FC and padj, for BC IL8 stim vs BC no stim. And GeneTonic pathways
 
-This requires a new subsetting of the original bulkRNAseq, since all the previous condtions were BC vs B7 for a single condition, not across conditions.
+This requires a new subsetting of the original bulkRNAseq, since all the previous conditions were BC vs B7 for a single condition, not across conditions.
 
 ## Data Dictionary - copy/pasted from 2023_08_16_bulk_RNAseq_subset_analysis.Rmd
 
@@ -443,13 +546,12 @@ Data.dictionary <- Data.dictionary %>%
 load(file = "data/sf.df.Rdata")
 ```
 
-Subset data to BC CARs, and remove the bead condiiton
+Subset data to BC CARs, and remove the bead condition
 
 ```{r}
 bc.il8.vs.none.subset <- dplyr::filter(Data.dictionary, CAR == "B7C2" & stim != "bead")
 
 bc.il8.vs.none.subset <- bc.il8.vs.none.subset$col.name
-
 ```
 
 ```{r}
