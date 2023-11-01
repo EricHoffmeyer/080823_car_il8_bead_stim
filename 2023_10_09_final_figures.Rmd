@@ -147,11 +147,52 @@ ggsave(filename = paste0(folder.name, "/innate_immune_response_heatmap_row15.png
        units = "in")
 ```
 
+Jess wants a volcano plot of just these genes. We'll need a new dataframe that has the padj and log2FC info.
+
+```{r}
+iir_volcano <- de_genes |> 
+  dplyr::filter(gene_symbol %in% rownames(iir_matrix))
+```
+
+```{r}
+w <- EnhancedVolcano(toptable = iir_volcano,
+                lab = iir_volcano$gene_symbol,
+                x = "log2FoldChange",
+                y = "padj",
+                xlim =  c(-1, 5.5),
+                ylim = c(0, 4),
+                title = "B7H3-CXCR2 vs B7H3 CAR T cells",
+                subtitle = "Innate Immune Response Genes",
+                FCcutoff = 0.25,
+                pCutoff = 0.05,
+                legendPosition = "none",
+                labFace = "bold",
+                caption = "",
+                max.overlaps = Inf,
+                drawConnectors = T
+                )
+w
+```
+
+```{r}
+ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_iir_volcano_plot_25_cutoff.png"),
+       plot = w,
+       width = 10,
+       height = 9,
+       units = "in",
+       dpi = 700
+       )
+```
+
+
+
+
+
 
 ## Heatmap for top 25 overall DESeq2 genes
 
 Jessica asked for the "top 25" genes. We will do two heatmaps. One by adjusted p value and another by log2FC (and still p < 0.05).
-The DESeq gene list is already sorted by adjusted p value, so we can start there. I'm boosting the gene level to 26 since we artifically increased CXCR2 expression.
+The DESeq gene list is already sorted by adjusted p value, so we can start there. I'm boosting the gene level to 26 since we artificially increased CXCR2 expression.
 
 ```{r}
 top_25_padj <- de_genes |> 
@@ -203,12 +244,13 @@ Top 25 DESeq genes by fold change.
 r <- pheatmap(top_25_log2,
          scale = "row",
          fontsize = 11,
-         fontsize_row = 15,
+         fontsize_row = 16,
          show_colnames = FALSE,
          treeheight_col = 0,
          annotation = anno,
          annotation_colors = anno_colors,
          main = "Top 25 genes by log2FC value: IL8 stim")
+
 # ggsave(filename = paste0(folder.name, "/top_25_log2FC_heatmap.png"),
 #        plot = r,
 #        width = 7,
@@ -299,10 +341,10 @@ s <- EnhancedVolcano(toptable = top_25_volcano,
                 FCcutoff = 0.5,
                 pCutoff = 0.05,
                 legendPosition = "none",
-                #labFace = "bold",
+                labFace = "bold",
                 caption = "",
                 max.overlaps = Inf,
-                #drawConnectors = T
+                drawConnectors = T
                 ) 
 s
 ```
@@ -310,8 +352,20 @@ s
 ```{r}
 ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_condition_top25_log2FC_volcano_plot.png"),
        plot = s,
-       width = 7,
-       height = 6,
+       width = 9,
+       height = 8,
+       units = "in",
+       dpi = 700
+       )
+```
+
+Bigger version
+
+```{r}
+ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_condition_top25_log2FC_volcano_plot_BIGGER.png"),
+       plot = s,
+       width = 9,
+       height = 8,
        units = "in",
        dpi = 700
        )
@@ -381,16 +435,6 @@ ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_conditi
        units = "in")
 ```
 
-
-
-
-
-
-
-
-
-
-
 ### Volcano plots
 In case she asks for them later
 
@@ -447,25 +491,6 @@ ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_conditi
        dpi = 700
        )
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ## Top 25 genes, by log2FC and padj, for BC IL8 stim vs BC no stim. And GeneTonic pathways
@@ -630,28 +655,9 @@ write_csv(bc.il8.vs.none.res.sf.df.dds.annotation, file = paste0(folder.name, su
 
 ### Top 25 genes heatmaps, by log2FC and padj, for BC IL8 stim vs BC no stim. And GeneTonic pathways
 
+There is only 1 differentially expressed gene, so I'm stopping here with this anaylsis.
+
 #### Heatmaps
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### GeneTonic annotation
 
