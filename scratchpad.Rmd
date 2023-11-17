@@ -1,0 +1,74 @@
+---
+title: "R Notebook"
+#output: html_notebook
+---
+
+---
+
+```{r load libraries}
+suppressPackageStartupMessages({
+library(tidyverse)
+library(plotly)
+library(ggrepel)
+library(GeneTonic)
+library(ComplexHeatmap)
+library(DESeq2)
+})
+```
+
+# Load data
+
+```{r load genetonic inputs}
+load("genetonic_results/il8_GeneTonic_inputs.Rdata")
+```
+
+
+
+```{r}
+normalizedCounts = DESeq2::counts(il8.sf.df.dds, normalized = T)
+normalizedCounts
+```
+
+
+```{r}
+temp <- il8.sf.df.annotation |>
+  filter(gene_name %in% rownames(top_25_log2)) 
+
+rownames(temp) <- temp$gene_name
+
+heatmap.data <- normalizedCounts |>
+  as.data.frame() |> 
+  tibble::rownames_to_column(var = "ensmbl_id") |> 
+  right_join(temp, by = c("ensmbl_id" = "gene_id")) |> 
+  column_to_rownames("gene_name") |> 
+  select(-ensmbl_id)
+
+```
+
+
+```{r}
+pheatmap(log2(heatmap.data+1),
+         
+         show_rownames = T,
+         scale = 'row')
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
