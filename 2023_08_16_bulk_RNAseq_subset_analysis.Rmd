@@ -159,7 +159,7 @@ no.sf.df.data <- sf.df %>%
   dplyr::select(all_of(no.subset.samples)) %>%
   drop_na() %>% 
   ## Filter low expressors (<10)
-  mutate(Rowsum = apply(., 1, function(x) sum(x >= 5))) %>% 
+  mutate(Rowsum = apply(., 1, function(x) sum(x >= 4))) %>% 
   dplyr::filter(Rowsum == dim(no.data.dictionary)[1]) %>% 
   ## no longer need the column "Rowsum", we can remove it
   dplyr::select(-Rowsum)

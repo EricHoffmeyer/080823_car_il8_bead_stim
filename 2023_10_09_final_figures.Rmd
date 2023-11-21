@@ -41,9 +41,33 @@ if(!exists(folder.name)){
 }
 ```
 
+2023_10_27 Update
+
+More requested graphs. To avoid confusion with previous requests, I will make a new subfolder:
+
+```{r}
+subfolder.name <- "/2023_10_27_update"
+
+if(!exists(subfolder.name)){
+  dir.create(paste0(folder.name, subfolder.name))
+}
+```
+
+2023_11_21 update
+
+More changes. Another new subfolder:
+
+```{r}
+subfolder2.name <- "/2023_11_21_update"
+
+if(!exists(subfolder2.name)){
+  dir.create(paste0(folder.name, subfolder2.name))
+}
+```
+
 ## Pathway Summary Plot
 
-```{r pathway plot}
+```{r pathway plot, fig.width=10}
 il8_summary <- gs_summary_overview(res_enrich = il8.topgo.res.sf.df.dds, 
                                    n_gs = 15,
                                    )
@@ -114,13 +138,13 @@ Preparing the annotation names and colors here. Jessica's other graphpad figures
 ```{r}
 b7c2_samples <- c("D1_B7C2_Il8", "D2_B7C2_Il8", "D3_B7C2_Il8")
 
-anno <- data.frame(sample_name = colnames(iir_matrix)) |> 
-  mutate(CAR = if_else(sample_name %in% b7c2_samples, "B7H3-CXCR2", "B7H3")) |> 
+iir_anno <- data.frame(sample_name = colnames(iir_matrix)) |> 
+  mutate(CAR = if_else(sample_name %in% b7c2_samples, "BC2", "B7-H3")) |> 
   column_to_rownames("sample_name")
 
-CAR <- c("#FFCC00", "blue")
-names(CAR) <- c("B7H3", "B7H3-CXCR2")
-anno_colors <- list(CAR = CAR)
+iir_CAR <- c("#FFCC00", "blue")
+names(iir_CAR) <- c("B7-H3", "BC2")
+iir_anno_colors <- list(CAR = CAR)
 ```
 
 Make heatmap
@@ -184,15 +208,10 @@ ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_iir_volcano
        )
 ```
 
-
-
-
-
-
 ## Heatmap for top 25 overall DESeq2 genes
 
 Jessica asked for the "top 25" genes. We will do two heatmaps. One by adjusted p value and another by log2FC (and still p < 0.05).
-The DESeq gene list is already sorted by adjusted p value, so we can start there. I'm boosting the gene level to 26 since we artificially increased CXCR2 expression.
+The DESeq gene list is already sorted by adjusted p value, so we can start there.
 
 ```{r}
 top_25_padj <- de_genes |> 
@@ -200,7 +219,6 @@ top_25_padj <- de_genes |>
   dplyr::slice(1:25) |> 
   column_to_rownames(var = "gene_symbol") |> 
   dplyr::select(contains("B7"))
-  
 ```
 
 ```{r}
@@ -223,7 +241,7 @@ q <- pheatmap(top_25_padj,
          annotation = anno,
          annotation_colors = anno_colors,
          main = "Top 25 genes by adjusted p value: IL8 stim")
-
+q
 # ggsave(filename = paste0(folder.name, "/top_25_padj_heatmap.png"),
 #        plot = q,
 #        width = 7,
@@ -245,11 +263,12 @@ r <- pheatmap(top_25_log2,
          scale = "row",
          fontsize = 11,
          fontsize_row = 16,
-         show_colnames = FALSE,
+         show_colnames = T,
          treeheight_col = 0,
          annotation = anno,
          annotation_colors = anno_colors,
          main = "Top 25 genes by log2FC value: IL8 stim")
+r
 
 # ggsave(filename = paste0(folder.name, "/top_25_log2FC_heatmap.png"),
 #        plot = r,
@@ -310,11 +329,8 @@ The new requests are:
 
   1. Top 25 genes, by log2FC and padj, for BC IL8 stim vs BC no stim.
 
-  2. Top 25 genes by logFC heatmap for BC no stim vs B7 no stim: 
+  2. Heatmap or volcano plot of top 25 genes by logFC of BC IL8 stim vs B7 IL8 stim
 
-  3. Heatmap or volcano plot of top 25 genes by logFC of BC IL8 stim vs B7 IL8 stim
-
-He have #3 objects loaded already, so we can start with that
 
 ## Heatmap/Volcano plot for top 25 log2FC BC IL8 vs B7 IL8
 
@@ -373,13 +389,22 @@ ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_IL8_condition_t
 
 I will use the heatmap generated previously. This task finished.
 
-## Top 25 genes by logFC heatmap for BC no stim vs B7 no stim
+# 2023_11_21 Update
 
-This is the next easiest task. Begin by reading in the DESeq data:
+More requests.
 
-```{r}
-no_stim_de_genes <- read.csv(file = "deseq_results/no_stim_DESeq2_anaylsis.csv")
+Double checking some data in the no stim condition. First we load the data.
+
+```{r load genetonic inputs}
+load("genetonic_results/no_GeneTonic_inputs.Rdata")
+no_stim_de_genes <- read.csv(file = "deseq_results/il8_DESeq2_analysis.csv")
 ```
+
+I had to go back an re-run the DESeq on the no stim condition, because it was not including the CXCR2 gene. Lowering the minimum read threshold to 4 included the control samples.
+
+Top 25 genes by log2foldchange for no stim condition:
+
+## Top 25 genes by logFC heatmap for BC no stim vs B7 no stim
 
 Make variables of top 25 genes by padj and log2FC:
 
@@ -410,28 +435,44 @@ no_matrix_log2 <- no_stim_t25_log2 |>
   dplyr::select(contains("B7"))
 
 no_anno <- data.frame(sample_name = colnames(no_matrix_log2)) |> 
-  mutate(CAR = if_else(sample_name %in% no_b7c2_samples, "B7H3-CXCR2", "B7H3")) |> 
+  mutate(CAR = if_else(sample_name %in% no_b7c2_samples, "BC2", "B7-H3")) |> 
   column_to_rownames("sample_name")
 
-CAR <- c("#FFCC00", "blue")
-names(CAR) <- c("B7H3", "B7H3-CXCR2")
-anno_colors <- list(CAR = CAR)
+no_CAR <- c("#FFCC00", "blue")
+names(no_CAR) <- c("B7-H3", "BC2")
+no_anno_colors <- list(CAR = CAR)
 ```
 
-```{r}
+Now we can make the heatmap. We will also try to add some other requested changes:
+  New title: B7-H3 vs BC2
+             no stimulation
+  Move z scale lower down
+  Move annotation legend in closer (on top of z-scale now)
+  Change CAR names to B7-H3 and BC2
+
+```{r, fig.width=9, fig.height=10}
 r <- pheatmap(no_matrix_log2,
          scale = "row",
-         fontsize = 11,
-         fontsize_row = 15,
+         fontsize = 20,
+         fontsize_row = 18,
          show_colnames = FALSE,
+         legend_breaks = c(1,0,-1),
          treeheight_col = 0,
          annotation = no_anno,
-         annotation_colors = anno_colors,
-         main = "Top 25 genes by log2FC value: no stim")
-ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_condition_heatmap_top25_log2FC.png"),
+         annotation_colors = no_anno_colors,
+         cellwidth = 50,
+         width = 9,
+         height = 10,
+         main = "B7-H3 vs BC2
+no stimluation")
+```
+Save plot
+
+```{r}
+ggsave(filename = paste0(folder.name, subfolder2.name, "/BC_vs_B7_no_stim_heatmap_log2FC_11_21_23.png"),
        plot = r,
-       width = 7,
-       height = 9,
+       width = 10,
+       height = 12,
        units = "in")
 ```
 
@@ -439,253 +480,142 @@ ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_conditi
 In case she asks for them later
 
 ```{r}
-t <- EnhancedVolcano(toptable = no_stim_t25_log2,
-                lab = rownames(no_stim_t25_log2),
-                x = "log2FoldChange",
-                y = "padj",
-                # xlim =  c(-1, 3),
-                # ylim = c(-0.5, 8),
-                title = "B7H3-CXCR2 vs B7H3 CAR T cells",
-                subtitle = "no stim condition",
-                FCcutoff = 0.5,
-                pCutoff = 0.05,
-                legendPosition = "none",
-                #labFace = "bold",
-                caption = "",
-                max.overlaps = Inf,
-                #drawConnectors = T
-                ) 
-t
+# t <- EnhancedVolcano(toptable = no_stim_t25_log2,
+#                 lab = rownames(no_stim_t25_log2),
+#                 x = "log2FoldChange",
+#                 y = "padj",
+#                 # xlim =  c(-1, 3),
+#                 # ylim = c(-0.5, 8),
+#                 title = "B7H3-CXCR2 vs B7H3 CAR T cells",
+#                 subtitle = "no stim condition",
+#                 FCcutoff = 0.5,
+#                 pCutoff = 0.05,
+#                 legendPosition = "none",
+#                 #labFace = "bold",
+#                 caption = "",
+#                 max.overlaps = Inf,
+#                 #drawConnectors = T
+#                 ) 
+# t
+# 
+# u <- EnhancedVolcano(toptable = no_stim_t25_padj,
+#                 lab = rownames(no_stim_t25_padj),
+#                 x = "log2FoldChange",
+#                 y = "padj",
+#                 # xlim =  c(-3, 3),
+#                 # ylim = c(-0.5, 8),
+#                 title = "B7H3-CXCR2 vs B7H3 CAR T cells",
+#                 subtitle = "no stim condition",
+#                 FCcutoff = 0.5,
+#                 pCutoff = 0.05,
+#                 legendPosition = "none",
+#                 #labFace = "bold",
+#                 caption = ""
+#                 )
+# u
+# 
+# ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_condition_volcano_plot_top25_log2FC.png"),
+#        plot = t,
+#        width = 7,
+#        height = 6,
+#        units = "in",
+#        dpi = 700
+#        )
+# 
+# ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_condition_volcano_plot_top25_padj.png"),
+#        plot = u,
+#        width = 7,
+#        height = 6,
+#        units = "in",
+#        dpi = 700
+#        )
+```
 
-u <- EnhancedVolcano(toptable = no_stim_t25_padj,
-                lab = rownames(no_stim_t25_padj),
-                x = "log2FoldChange",
-                y = "padj",
-                # xlim =  c(-3, 3),
-                # ylim = c(-0.5, 8),
-                title = "B7H3-CXCR2 vs B7H3 CAR T cells",
-                subtitle = "no stim condition",
-                FCcutoff = 0.5,
-                pCutoff = 0.05,
-                legendPosition = "none",
-                #labFace = "bold",
-                caption = ""
-                )
-u
+Replot the IL8 stim data in a similar fasion:
+
+Top 25 DESeq genes by fold change.
+
+```{r}
+top_25_log2 <- de_genes |> 
+  na.omit() |> 
+  filter(padj <= 0.05) |> 
+  arrange(desc(abs(c(log2FoldChange)))) |> 
+  column_to_rownames(var = "gene_symbol") |> 
+  dplyr::select(contains("B7")) |> 
+  dplyr::slice(1:25)
+```
+
+Annotation df for this data:
+
+```{r}
+b7c2_samples <- c("D1_B7C2_Il8", "D2_B7C2_Il8", "D3_B7C2_Il8")
+
+anno <- data.frame(sample_name = colnames(top_25_log2)) |> 
+  mutate(CAR = if_else(sample_name %in% b7c2_samples, "BC2", "B7-H3")) |> 
+  column_to_rownames("sample_name")
+
+CAR <- c("#FFCC00", "blue")
+names(CAR) <- c("B7-H3", "BC2")
+anno_colors <- list(CAR = CAR)
+```
+
+Heatmap time
+
+```{r, fig.width=9, fig.height=10}
+z <- pheatmap(top_25_log2,
+         scale = "row",
+         fontsize = 20,
+         fontsize_row = 18,
+         show_colnames = FALSE,
+         legend_breaks = c(1,0,-1),
+         treeheight_col = 0,
+         annotation = anno,
+         annotation_colors = anno_colors,
+         cellwidth = 50,
+         width = 9,
+         height = 10,
+         main = "B7-H3 vs BC2
+IL8 stimulation")
 ```
 
 ```{r}
-ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_condition_volcano_plot_top25_log2FC.png"),
-       plot = t,
-       width = 7,
-       height = 6,
-       units = "in",
-       dpi = 700
-       )
-
-ggsave(filename = paste0(folder.name, subfolder.name, "/BC_vs_B7_no_stim_condition_volcano_plot_top25_padj.png"),
-       plot = u,
-       width = 7,
-       height = 6,
-       units = "in",
-       dpi = 700
-       )
+ggsave(filename = paste0(folder.name, subfolder2.name, "/BC_vs_B7_IL8_top25_log2FC_11_21_23.png"),
+       plot = z,
+       width = 10,
+       height = 12,
+       units = "in")
 ```
 
+Formatting Innate Immune Response Heatmap
 
-## Top 25 genes, by log2FC and padj, for BC IL8 stim vs BC no stim. And GeneTonic pathways
 
-This requires a new subsetting of the original bulkRNAseq, since all the previous conditions were BC vs B7 for a single condition, not across conditions.
 
-## Data Dictionary - copy/pasted from 2023_08_16_bulk_RNAseq_subset_analysis.Rmd
-
-Creating a variable with the names of all the sample folders
-
-```{r dir.names}
-dir.names = c(
-"quant_files/D1_B7C2_Il8_stim_S8_L002",
-"quant_files/D1_B7C2_bead_stim_S14_L002",
-"quant_files/D1_B7C2_no_stim_S2_L002",
-"quant_files/D1_B7_Il8_stim_S7_L002",
-"quant_files/D1_B7_bead_stim_S13_L002",
-"quant_files/D1_B7_no_stim_S1_L002",
-"quant_files/D2_B7C2_Il8_stim_S10_L002",
-"quant_files/D2_B7C2_bead_stim_S16_L002",
-"quant_files/D2_B7C2_no_stim_S4_L002",
-"quant_files/D2_B7_Il8_stim_S9_L002",
-"quant_files/D2_B7_bead_stim_S15_L002",
-"quant_files/D2_B7_no_stim_S3_L002",
-"quant_files/D3_B7C2_Il8_stim_S12_L002",
-"quant_files/D3_B7C2_bead_stim_S18_L002",
-"quant_files/D3_B7C2_no_stim_S6_L002",
-"quant_files/D3_B7_Il8_stim_S11_L002",
-"quant_files/D3_B7_bead_stim_S17_L002",
-"quant_files/D3_B7_no_stim_S5_L002"
-)
+```{r, fig.width=9, fig.height=10}
+p <- pheatmap(iir_matrix,
+         scale = "row",
+         fontsize = 20,
+         fontsize_row = 18,
+         show_colnames = FALSE,
+         legend_breaks = c(1,0,-1),
+         treeheight_col = 0,
+         annotation = iir_anno,
+         annotation_colors = iir_anno_colors,
+         cellwidth = 50,
+         width = 9,
+         height = 10,
+         main = "B7-H3 vs BC2
+Innate Immune Response 
+(GO:0045087)")
 ```
 
-```{r load libraries}
-suppressPackageStartupMessages({
-library(tidybulk)
-library(janitor)
-library(plotly)
-library(GeneTonic)
-library(AnnotationDbi)
-library(org.Hs.eg.db)
-library(topGO)
-})
-```
-
-Convert the `vector` to `data.frame`.
-
-```{r data dictionary start}
-Data.dictionary <- data.frame(Orig.Name = dir.names, Folder.Name = dir.names) %>% 
-  mutate(Folder.Name = str_remove(Folder.Name, pattern = "quant_files/"))
-```
-
-Perform these steps to transform the `data.frame` into desirable format.
-
-```{r format data dictionary}
-Data.dictionary <- Data.dictionary %>% 
-  ## Create or duplicate the "Orig.Name" column and called it "Dup"
-  mutate(Dup = Folder.Name) %>% 
-  ## Breakup (separate) the "Dup" column using "_" as its separator
-  separate_wider_delim(Dup, names = c("donor", "CAR", "stim", "line1", "line2", "line3"), delim = "_") %>%
-  ## Create a new column called "col.name" by modifying "Orig.Name"
-  ## by removing "_S(any digit)_L002"
-  mutate(col.name = str_remove(Folder.Name, pattern = "_stim_S([:digit:]+)_L002")) %>%
-  # Relocate the new "col.name" column right after the first column; "Org.Name"
-  # relocate(col.name, .after = Orig.Name) %>% 
-  ## Make donor, CAR, and stim columns a factors
-  mutate(donor = as.factor(donor)) %>% 
-  mutate(CAR = as.factor(CAR)) %>% 
-  mutate(stim = as.factor(stim)) %>% 
-  # mutate(col.name = str_c(donor, CAR, stim, sep = "_")) %>% 
-  ## Remove line1, line2, line3 columns, as we don't need them.
-  dplyr::select(-c("line1", "line2", "line3"))
-```
-
-### Load the saved copy
-
-```{r load sf.df}
-load(file = "data/sf.df.Rdata")
-```
-
-Subset data to BC CARs, and remove the bead condition
 
 ```{r}
-bc.il8.vs.none.subset <- dplyr::filter(Data.dictionary, CAR == "B7C2" & stim != "bead")
-
-bc.il8.vs.none.subset <- bc.il8.vs.none.subset$col.name
+ggsave(filename = paste0(folder.name, subfolder2.name, "/BC_vs_B7_iir_path_11_21_23.png"),
+       plot = p,
+       width = 10,
+       height = 12,
+       units = "in")
 ```
-
-```{r}
-bc.il8.vs.none.dictionary <- dplyr::filter(Data.dictionary, col.name %in% bc.il8.vs.none.subset)
-```
-
-```{r}
-bc.il8.vs.none.data <- sf.df %>%
-  dplyr::select(all_of(bc.il8.vs.none.subset)) %>%
-  drop_na() %>% 
-  ## Filter low expressors (<10)
-  mutate(Rowsum = apply(., 1, function(x) sum(x >= 5))) %>% 
-  dplyr::filter(Rowsum == dim(bc.il8.vs.none.dictionary)[1]) %>% 
-  ## no longer need the column "Rowsum", we can remove it
-  dplyr::select(-Rowsum)
-```
-
-
-### Create SummarizeExperiment Object
-
-```{r}
-bc.il8.vs.none.sf.df.se <- SummarizedExperiment(assays = list(counts = as.matrix(bc.il8.vs.none.data)),
-                                colData = bc.il8.vs.none.dictionary)
-```
-
-### Create DESeq Object
-
-The design will use CAR as the factor to run the comparison.
-
-```{r}
-bc.il8.vs.none.sf.df.dds <- DESeqDataSet(bc.il8.vs.none.sf.df.se, design = ~stim)
-```
-
-### DE Analysis
-
-#### Statistical Analysis
-
-```{r}
-bc.il8.vs.none.sf.df.dds <- DESeq(bc.il8.vs.none.sf.df.dds)
-```
-
-### Analysis Result
-
-```{r results()}
-bc.il8.vs.none.res.sf.df.dds <- results(bc.il8.vs.none.sf.df.dds,
-                        contrast = c("stim", "Il8", "no"),
-                        alpha = 0.05)
-```
-
-### annotation Table
-
-```{r start annotation tables}
-bc.il8.vs.none.data.df <- bc.il8.vs.none.data %>% 
-  rownames_to_column(var = "gene_id")
-```
-
-```{r}
-bc.il8.vs.none.res.sf.df.dds.annotation <- deseqresult2df(bc.il8.vs.none.res.sf.df.dds) %>% 
-  dplyr::rename(gene_id = id) %>% 
-  mutate(gene_symbol = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "SYMBOL", multiVals = "first")) %>% 
-  mutate(gene_entrez = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "ENTREZID", multiVals = "first")) %>% 
-  mutate(gene_desc = mapIds(org.Hs.eg.db, keys = gene_id, keytype = "ENSEMBL", column = "GENENAME", multiVals = "first")) %>% 
-  relocate(gene_symbol, gene_entrez, gene_desc, .after = gene_id) %>% 
-  left_join(bc.il8.vs.none.data.df, by = c("gene_id"="gene_id"))
-
-View(bc.il8.vs.none.res.sf.df.dds.annotation)
-```
-
-### Export Result
-
-Write DESeq results to cxv files
-
-```{r write DESeq results}
-write_csv(bc.il8.vs.none.res.sf.df.dds.annotation, file = paste0(folder.name, subfolder.name, "/BC_il8_vs_no_stim_deseq.csv"))
-```
-
-### Top 25 genes heatmaps, by log2FC and padj, for BC IL8 stim vs BC no stim. And GeneTonic pathways
-
-There is only 1 differentially expressed gene, so I'm stopping here with this anaylsis.
-
-#### Heatmaps
-
-### GeneTonic annotation
-
-```{r create/format annotation df for GeneTonic}
-bc.il8.vs.none.res.sf.df.dds.annotation <- deseqresult2df(bc.il8.vs.none.res.sf.df.dds) %>% 
-  dplyr::rename(gene_id = id) %>% 
-  mutate(gene_name = mapIds(org.Hs.eg.db, 
-                            keys = gene_id, 
-                            keytype = "ENSEMBL", 
-                            column = "SYMBOL", 
-                            multiVals = "first")) %>% 
-  dplyr::select(gene_id, gene_name) 
-
-```
-```{r}
-sig.gene.cutoff = 0.05 ## Reduce significant gene list only p adjusted significant genes
-
-bc.il8.vs.none.res.sf.df.dds.annotation %>% 
-  dplyr::filter(padj <= sig.gene.cutoff)
-```
-
-
-
-
-
-
-
-
 
 
 
