@@ -3,19 +3,19 @@
 This repository contains the code and some results associated with the B7H3 CAR T + CXCR2 bulk RNAseq experiment.
 
 Breifly, two types of CAR T cells were created:
-  B7H3 CAR T cells
-  B7H3 CAR T cells + CXCR2 ("BC2") - same CAR as the other, but an extra protein included in the plasmid
+  - B7H3 CAR T cells
+  - B7H3 CAR T cells + CXCR2 ("BC2") - same CAR protein, but an extra protein (CXCR2) included in the plasmid
 
 These two CAR T cells were submitted to three conditions:
-  No stimulation
-  B7H3 bead stimulation
-  IL-8 cytokine stimulation
+  - No stimulation
+  - B7H3 bead stimulation
+  - IL-8 cytokine stimulation (a ligand for CXCR2)
 
 The cells were then collected for bulk RNAseq to compare the CAR T cells against each other for each stimulation.
 
 ## Folders
 
-The main repository contains R markdown files detailing the analysis of the mapped reads.
+The main repository contains R markdown files detailing the analysis of the mapped reads. Mainly done by subsetting the stimulation conditions, running DESeq2, and then GeneTonic exploration of the resulting pathway enrichment analyses.
 
 Files folders in the repository contain:
 
@@ -31,7 +31,7 @@ Initial plots generated after DESeq2 results were put into GeneTonic.
 ### deseq_results
 Gene list csv files detailing the results of the DESeq2 comparisons.
 
-2023_10_09_results
+### 2023_10_09_results
 Plots that were a result of 2023_10_09_final_figures.Rmd and 2023_10_23_plot_adjustments.Rmd
 There were many iterations of these files, as many small tweaks were made to make plots for publication. So not all plots may have their original code in the markdown files. See subfolders for more recent plots that are reflected in the code.
 
